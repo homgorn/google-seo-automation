@@ -1,0 +1,24 @@
+# Нормализация переводов строк
+* text=auto eol=lf
+
+# Скрипты обязаны быть с LF, иначе bash в Linux/CI сломается
+*.sh    text eol=lf
+*.py    text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.md    text eol=lf
+
+# Windows-специфичное
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Бинарное — не трогать
+*.db    binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary

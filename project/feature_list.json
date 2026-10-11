@@ -1,0 +1,172 @@
+[
+  {
+    "id": "F001",
+    "category": "functional",
+    "description": "Create comprehensive Google API documentation wiki for SEO/AI optimization",
+    "steps": [
+      "Document all Google Analytics Data API (GA4) endpoints and schemas",
+      "Document Google Tag Manager API v2 endpoints",
+      "Document Google Search Console API endpoints",
+      "Document Google Ads API v18 GAQL reference",
+      "Document Google Indexing API endpoints",
+      "Document Google Merchant Center API (Merchant API v1)",
+      "Document Google Business Profile API endpoints",
+      "Document PageSpeed Insights API v5 endpoints",
+      "Document BigQuery GA4 export schema",
+      "Document Microsoft Advertising (Bing Ads) API endpoints",
+      "Create AEO/SEO optimization guides for AI Overviews",
+      "Create structured data/schema markup implementation guides"
+    ],
+    "priority": 1,
+    "passes": false
+  },
+  {
+    "id": "F002",
+    "category": "functional",
+    "description": "Build internal LLM wiki database with vector search capabilities",
+    "steps": [
+      "Design SQLite/PostgreSQL schema for API documentation storage",
+      "Implement document chunking and embedding pipeline",
+      "Create vector search index for semantic queries",
+      "Build API documentation update/sync scheduler (bi-weekly)",
+      "Implement versioning and change detection for API docs",
+      "Create search interface for LLM agents to query wiki"
+    ],
+    "priority": 1,
+    "passes": false
+  },
+  {
+    "id": "F003",
+    "category": "integration",
+    "description": "Implement Google Analytics 4 automation via Data API",
+    "steps": [
+      "Create GA4 property and data stream management",
+      "Implement custom dimensions/metrics creation",
+      "Implement key events (conversions) management",
+      "Build automated reporting pipeline (daily/weekly/monthly)",
+      "Create BigQuery export integration for unsampled data",
+      "Implement GA4 audit and health check automation"
+    ],
+    "priority": 2,
+    "passes": false
+  },
+  {
+    "id": "F004",
+    "category": "integration",
+    "description": "Implement Google Tag Manager automation",
+    "steps": [
+      "Create workspace management (create, list, sync)",
+      "Implement tag/trigger/variable CRUD operations",
+      "Build container versioning and publishing pipeline",
+      "Create GTM audit automation (duplicate tags, broken triggers)",
+      "Implement consent mode configuration",
+      "Build tag template library management"
+    ],
+    "priority": 2,
+    "passes": false
+  },
+  {
+    "id": "F005",
+    "category": "integration",
+    "description": "Implement Google Search Console automation",
+    "steps": [
+      "Create site verification and management",
+      "Implement search analytics querying (clicks, impressions, CTR, position)",
+      "Build sitemap submission and monitoring automation",
+      "Implement URL inspection and indexing status checks",
+      "Create Indexing API integration for rapid URL submission",
+      "Build search performance dashboards and alerts"
+    ],
+    "priority": 2,
+    "passes": false
+  },
+  {
+    "id": "F006",
+    "category": "integration",
+    "description": "Implement Google Ads automation via GAQL",
+    "steps": [
+      "Create campaign budget management",
+      "Implement Search/Display/PMax campaign creation",
+      "Build keyword research and management automation",
+      "Implement search terms analysis and negative keyword automation",
+      "Create conversion tracking setup and validation",
+      "Build automated reporting and budget optimization"
+    ],
+    "priority": 3,
+    "passes": false
+  },
+  {
+    "id": "F007",
+    "category": "integration",
+    "description": "Implement Microsoft Advertising (Bing Ads) automation",
+    "steps": [
+      "Set up OAuth authentication for Microsoft Advertising",
+      "Implement campaign management (SOAP + REST APIs)",
+      "Build keyword and ad management automation",
+      "Create reporting integration",
+      "Implement audience and targeting management"
+    ],
+    "priority": 4,
+    "passes": false
+  },
+  {
+    "id": "F008",
+    "category": "functional",
+    "description": "Build AI Overviews / AEO monitoring and optimization system",
+    "steps": [
+      "Create AI Overview citation tracking system",
+      "Implement E-E-A-T content audit automation",
+      "Build structured data validation for AI visibility",
+      "Create content optimization recommendations engine",
+      "Implement competitor AI citation analysis",
+      "Build AI search visibility dashboards"
+    ],
+    "priority": 2,
+    "passes": false
+  },
+  {
+    "id": "F009",
+    "category": "integration",
+    "description": "Implement OpenChamber synchronization",
+    "steps": [
+      "Design OpenChamber project/session structure for SEO automation",
+      "Create session templates for each automation type",
+      "Implement bi-directional sync (wiki ↔ OpenChamber)",
+      "Build scheduled task system for recurring automations",
+      "Create notification system for automation results",
+      "Implement audit trail and decision logging"
+    ],
+    "priority": 3,
+    "passes": false
+  },
+  {
+    "id": "F010",
+    "category": "quality",
+    "description": "Build comprehensive testing and verification framework",
+    "steps": [
+      "Create API integration test suite",
+      "Build end-to-end verification for each automation",
+      "Implement data quality checks and anomaly detection",
+      "Create rollback and recovery procedures",
+      "Build performance benchmarks for API calls",
+      "Implement comprehensive logging and monitoring"
+    ],
+    "priority": 3,
+    "passes": false
+  },
+  {
+    "id": "F011",
+    "category": "ops",
+    "description": "Create operational runbooks and maintenance procedures",
+    "steps": [
+      "Document API quota management and rate limiting",
+      "Create credential rotation procedures",
+      "Build disaster recovery playbook",
+      "Document cost monitoring and optimization",
+      "Create onboarding guide for new team members",
+      "Build automated health checks and alerting"
+    ],
+    "priority": 4,
+    "passes": false
+  }
+]

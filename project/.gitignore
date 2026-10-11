@@ -1,0 +1,72 @@
+# ── Секреты: НИКОГДА не коммитить ──────────────────────────────
+.env
+.env.*
+!.env.example
+*.json.key
+service-account*.json
+credentials.json
+client_secret*.json
+gha-creds*.json
+*-token.json
+token.json
+refresh_token.txt
+
+# ── Локальная БД (пересоздаётся: init_db.py + sync_wiki.py --full) ──
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/wiki.db
+data/chroma/
+data/vectors/
+data/exports/
+
+# ── Логи и временное ───────────────────────────────────────────
+logs/
+*.log
+tmp/
+.cache/
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# ── Node (package.json есть, но node_modules не нужен в репо) ──
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# ── IDE / ОС ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── OpenChamber ───────────────────────────────────────────────
+openchamber/sessions/
+openchamber/state/
+*.openchamber/
+
+# ── ВАЖНО: вики-исходники коммитятся, кэш — нет ────────────────
+!wiki/
+!wiki/**
