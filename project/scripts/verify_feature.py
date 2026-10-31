@@ -136,6 +136,8 @@ def verify_feature(feature_id: str) -> VerificationResult:
                 cmd = [sys.executable, str(PROJECT_ROOT / script), "--step", "S01", "--url", "https://example.com/blog/post", "--query", "what is AEO"]
             elif "gsc" in script:
                 cmd = [sys.executable, str(PROJECT_ROOT / script), "--step", "S01", "--site-url", "https://example.com/"]
+            elif "ga4" in script:
+                cmd = [sys.executable, str(PROJECT_ROOT / script), "--step", "S01", "--auth-method", "service_account", "--property-id", "properties/123456789"]
             else:
                 cmd = [sys.executable, str(PROJECT_ROOT / script), "--step", "S01"]
 
