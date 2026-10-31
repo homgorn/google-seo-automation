@@ -15,6 +15,7 @@ Verifiable steps:
 
 import argparse
 import json
+import os
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone

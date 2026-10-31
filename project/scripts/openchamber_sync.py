@@ -16,6 +16,7 @@ openchamber_sync.py — F009: синхронизация вики с OpenChamber
 import argparse
 import json
 import sqlite3
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
