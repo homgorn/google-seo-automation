@@ -281,9 +281,9 @@ def sync_discovery(conn, key, cfg):
         is_new = False
         if existing[1] != h:
             conn.execute(
-                """UPDATE api_docs SET content=?, content_hash=?, last_updated=?
+                """UPDATE api_docs SET content=?, content_hash=?, last_updated=?, last_fetched=?
                    WHERE id=?""",
-                (body, h, datetime.now(timezone.utc).isoformat(), doc_id),
+                (body, h, datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat(), doc_id),
             )
             conn.execute(
                 """INSERT INTO change_log (doc_id, change_type, field_changed, new_value, sync_run_id)
@@ -418,8 +418,8 @@ def sync_local_wiki(conn, sources=None):
             print(f"  [NEW] {md_path.relative_to(PROJECT_ROOT).as_posix()}")
         elif existing[1] != h:
             conn.execute(
-                """UPDATE api_docs SET content=?, content_hash=?, last_updated=?, version=? WHERE id=?""",
-                (raw, h, datetime.now(timezone.utc).isoformat(), fm.get("version"), existing[0]),
+                """UPDATE api_docs SET content=?, content_hash=?, last_updated=?, last_fetched=?, version=? WHERE id=?""",
+                (raw, h, datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat(), fm.get("version"), existing[0]),
             )
             conn.execute(
                 """INSERT INTO change_log (doc_id, change_type, field_changed, new_value, sync_run_id)
@@ -428,6 +428,12 @@ def sync_local_wiki(conn, sources=None):
             )
             stats["updated"] += 1
             print(f"  [UPD] {md_path.relative_to(PROJECT_ROOT).as_posix()}")
+    else:
+        # Content unchanged — still bump last_fetched so freshness check passes
+        conn.execute(
+            "UPDATE api_docs SET last_fetched=? WHERE id=?",
+            (datetime.now(timezone.utc).isoformat(), existing[0]),
+        )
 
     conn.commit()
     finish_run(conn, run_id, "completed", stats["processed"], stats["created"], stats["updated"])
@@ -440,7 +446,8 @@ def sync_local_wiki(conn, sources=None):
 def check_freshness(conn):
     cutoff = (datetime.now(timezone.utc) - timedelta(days=STALE_DAYS)).isoformat()
     rows = conn.execute(
-        """SELECT source, MAX(last_fetched), MAX(last_updated), COUNT(*)
+        """SELECT source, MAX(COALESCE(last_fetched, last_updated)),
+                  MAX(last_updated), COUNT(*)
            FROM api_docs GROUP BY source ORDER BY source"""
     ).fetchall()
 
