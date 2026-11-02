@@ -18,7 +18,7 @@ de documentos de descubrimiento oficiales y legibles por máquina.
 - **Detección de cambios** mediante SHA256 + registro de auditoría `change_log`
 - **Verificación de frescura** con umbral de 14 días y programación cron
 - **16 tests de regresión** que cubren 4 bugs encontrados durante el desarrollo
-- **7 roles de agente** con contratos de entrada/salida explícitos
+- **7 roles de automatizacion** con contratos de entrada/salida explícitos
 - **8 de 11 features** verificadas (PASS); 3 bloqueadas solo por credenciales externas
 
 ## Inicio rápido

@@ -18,7 +18,7 @@ de documents de découverte officiels et lisibles par machine.
 - **Détection de changements** via SHA256 + journal d'audit `change_log`
 - **Vérification de fraîcheur** avec seuil de 14 jours et planification cron
 - **16 tests de régression** couvrant 4 bugs trouvés pendant le développement
-- **7 rôles d'agent** avec des contrats d'entrée/sortie explicites
+- **7 rôles d'automatisation** avec des contrats d'entrée/sortie explicites
 - **8 sur 11 features** vérifiées (PASS) ; 3 bloquées uniquement par des identifiants externes
 
 ## Démarrage rapide

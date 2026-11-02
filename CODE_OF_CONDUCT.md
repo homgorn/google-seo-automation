@@ -15,7 +15,7 @@ everyone who contributes to this project.
 ## Enforcement
 
 Instances of unacceptable behavior may be reported to the project maintainer.
-All complaints will be reviewed and investigated promptly and fairly.
+All complaints will be reviewed and investigated quickly and fairly.
 
 ## Attribution
 

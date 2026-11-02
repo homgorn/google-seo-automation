@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ga4_automation.py` — Google Analytics 4 automation (8 steps, service account + OAuth)
 - `openchamber_sync.py` — OpenChamber session synchronization
 - `verify_feature.py` — automated feature verification (11 features)
-- 7 agent roles with explicit I/O contracts
+- 7 automation roles with explicit I/O contracts
 - 16 regression tests covering 4 bugs found during development
 - 3 runbooks (credential rotation, disaster recovery, cost monitoring)
 - `.env.example` — environment variable template

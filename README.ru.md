@@ -80,9 +80,9 @@ project/
 │   ├── architecture.md    Измеренные факты, риски, пробелы
 │   ├── progress.md        Журнал изменений
 │   └── runbooks/          Ротация credentials, DR, мониторинг стоимости
-├── .opencode/agents/      7 агентов
+├── .opencode/roles/      7 агентов
 ├── feature_list.json      11 фич
-├── AGENTS.md              Маршрутизация по агентам
+├── AGENTS.md              Маршрутизация по ролям
 └── init.sh                Проверка окружения
 ```
 

@@ -18,7 +18,7 @@ documents.
 - **Change detection** via SHA256 + `change_log` audit trail
 - **Freshness checks** with a 14-day threshold and cron scheduling
 - **16 regression tests** covering 4 bugs found during development
-- **7 agent roles** with explicit input/output contracts (explorer, runner,
+- **7 automation roles** with explicit input/output contracts (explorer, runner,
   verifier, critic, migrator, implementer, orchestrator)
 - **8 of 11 features** verified (PASS); 3 blocked on external credentials only
 
@@ -96,15 +96,15 @@ project/
 │   ├── architecture.md    Measured facts, risks, gaps
 │   ├── progress.md        Progress log
 │   └── runbooks/          Credential rotation, DR, cost monitoring
-├── .opencode/agents/      7 agent roles
+├── .opencode/roles/      7 automation roles
 ├── feature_list.json      11 features, all pending verifier sign-off
-├── AGENTS.md              Agent routing
+├── AGENTS.md              Role routing
 └── init.sh                Environment check
 ```
 
-## Agents
+## Roles
 
-| Agent | Role | Model tier |
+| Role | Role | Model tier |
 |-------|------|------------|
 | `explorer` | Read-only codebase and API research | Cheap |
 | `runner` | Noisy builds and test suites | Cheap |

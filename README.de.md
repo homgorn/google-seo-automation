@@ -18,7 +18,7 @@ maschinenlesbaren Discovery-Dokumenten.
 - **Änderungserkennung** via SHA256 + `change_log`-Audit-Trail
 - **Aktualitätsprüfung** mit 14-Tage-Schwelle und Cron-Zeitplan
 - **16 Regressionstests** für 4 während der Entwicklung gefundene Bugs
-- **7 Agentenrollen** mit expliziten Ein-/Ausgabe-Verträgen
+- **7 Rollenrollen** mit expliziten Ein-/Ausgabe-Verträgen
 - **8 von 11 Features** verifiziert (PASS); 3 blockiert nur durch externe Credentials
 
 ## Schnellstart
