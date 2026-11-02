@@ -1,0 +1,21 @@
+{
+  "primary": "en",
+  "locales": {
+    "en": "README.md",
+    "ru": "README.ru.md",
+    "es": "README.es.md",
+    "de": "README.de.md",
+    "fr": "README.fr.md",
+    "zh": "README.zh.md",
+    "ja": "README.ja.md"
+  },
+  "names": {
+    "en": "English",
+    "ru": "Русский",
+    "es": "Español",
+    "de": "Deutsch",
+    "fr": "Français",
+    "zh": "中文 (简体)",
+    "ja": "日本語"
+  }
+}
