@@ -5,9 +5,9 @@ Google Ads and AI Overviews (AEO) workflows over a **self-updating internal
 knowledge base** of Google APIs, built from official machine-readable discovery
 documents.
 
-> Status: knowledge-base infrastructure is operational. GA4/GTM/GSC/Ads
-> integrations are scaffolded and verified; live API calls require credentials
-> (see `.env.example`).
+> Status: knowledge base, tooling and 116 regression tests are operational.
+> GA4/GTM/GSC/Ads integrations are scaffolded and verified; live API calls
+> require credentials (see `project/.env.example`).
 
 ---
 
@@ -15,12 +15,14 @@ documents.
 
 - **312 API endpoints** extracted from 7 Google Discovery documents automatically
 - **Full-text search** over the wiki (SQLite FTS5, zero external dependencies)
+- **Knowledge graph** — 123 subject-predicate-object triples over 12 entities
+- **Multi-level indexes** — Markdown, JSON, per-source, plus a machine-readable graph
 - **Change detection** via SHA256 + `change_log` audit trail
 - **Freshness checks** with a 14-day threshold and cron scheduling
-- **16 regression tests** covering 4 bugs found during development
-- **7 automation roles** with explicit input/output contracts (explorer, runner,
-  verifier, critic, migrator, implementer, orchestrator)
+- **116 regression tests** covering 12 defects found during development
 - **8 of 11 features** verified (PASS); 3 blocked on external credentials only
+- **Mutation guard** — Google Ads budgets and GTM publishing require explicit
+  `ALLOW_MUTATIONS=1`
 
 ## Quick start
 
@@ -36,14 +38,15 @@ python scripts/init_db.py
 # 3. Fetch fresh documentation from Google
 python scripts/sync_wiki.py --full
 
-# 4. Verify everything is up to date
+# 4. Regenerate wiki indexes and the knowledge graph
+python scripts/wiki_index.py
+
+# 5. Verify everything is up to date
 python scripts/sync_wiki.py --check-freshness
 ```
 
-> `sync_wiki.py` and `wiki_query.py` run on the **Python 3.10+ standard
-> library**. No `pip install` is needed to read or sync the wiki. Additional
-> dependencies (chromadb, google-api-python-client, etc.) are for future
-> integrations and are listed in `requirements.txt`.
+> `sync_wiki.py`, `wiki_query.py` and `wiki_index.py` run on the **Python 3.10+
+> standard library**. No `pip install` is needed to read or sync the wiki.
 
 ## Using the wiki
 
@@ -70,65 +73,60 @@ python scripts/wiki_query.py changes --limit 10         # change history
 | Google Merchant API v1 | `merchantapi.googleapis.com` | 0 (no methods published) |
 | **Total** | | **312** |
 
-Full analysis, including non-working URLs and coverage gaps:
-[`docs/architecture.md`](project/docs/architecture.md).
-
 ## Project structure
 
 ```
-project/
-├── wiki/                  Markdown knowledge source (committed)
-├── data/wiki.db           SQLite: docs, endpoints, changelog, FTS5 (not committed)
-├── scripts/
-│   ├── init_db.py         Schema + idempotent migrations
-│   ├── sync_wiki.py       Discovery fetch + markdown ingest + freshness
-│   ├── wiki_query.py      CLI search over the wiki
-│   ├── embed_wiki.py      Embeddings (chromadb, optional)
-│   ├── gsc_automation.py  Google Search Console automation
-│   ├── ads_automation.py  Google Ads automation (GAQL, 4 channels)
-│   ├── gtm_automation.py  Google Tag Manager automation
-│   ├── aeo_automation.py  Answer Engine Optimization
-│   ├── ga4_automation.py  Google Analytics 4 automation
-│   ├── openchamber_sync.py OpenChamber session sync
-│   └── verify_feature.py  Automated feature verification
-├── tests/                 Regression tests (16 tests)
-├── docs/
-│   ├── architecture.md    Measured facts, risks, gaps
-│   ├── progress.md        Progress log
-│   └── runbooks/          Credential rotation, DR, cost monitoring
-├── .opencode/roles/      7 automation roles
-├── feature_list.json      11 features, all pending verifier sign-off
-├── AGENTS.md              Role routing
-└── init.sh                Environment check
+├── README.md               this file (+ 6 locales)
+├── LICENSE                 MIT
+├── SECURITY.md             reporting, secret handling, known considerations
+├── CONTRIBUTING.md         local dev, commit convention, PR flow
+├── CODE_OF_CONDUCT.md
+├── CHANGELOG.md
+├── .github/
+│   ├── workflows/ci.yml    tests + coverage + secret scan + weekly refresh
+│   ├── ISSUE_TEMPLATE/     bug report, feature request
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── locales.json        locale parity index
+└── project/
+    ├── wiki/               Markdown knowledge source + generated indexes
+    │   ├── index.md        main index
+    │   ├── index.json      machine-readable index
+    │   ├── _data/          knowledge graph: entities, triples, graph stats
+    │   └── <source>/       per-source index
+    ├── data/wiki.db        SQLite: docs, endpoints, changelog, FTS5 (not committed)
+    ├── scripts/
+    │   ├── common.py       shared Verdict, guards, validators, doc routing
+    │   ├── init_db.py      schema + idempotent migrations
+    │   ├── sync_wiki.py    discovery fetch + markdown ingest + freshness
+    │   ├── wiki_index.py   multi-level indexes + knowledge graph
+    │   ├── wiki_query.py   CLI search
+    │   ├── embed_wiki.py   embeddings (optional)
+    │   ├── ga4_automation.py / gtm_automation.py / gsc_automation.py
+    │   ├── ads_automation.py / aeo_automation.py
+    │   ├── openchamber_sync.py
+    │   ├── verify_feature.py   automated feature verification
+    │   └── secret_scan.py      secret detection
+    ├── tests/              116 regression tests
+    ├── docs/
+    │   ├── specs/          SPEC-001 platform specification
+    │   ├── adr/            4 architecture decision records
+    │   ├── runbooks/       credential rotation, disaster recovery, cost
+    │   ├── architecture.md measured facts, risks, gaps
+    │   ├── progress.md     change log
+    │   └── ROADMAP.md      stages, blockers, next chunks
+    ├── .opencode/agents/   7 agent roles
+    ├── feature_list.json   11 features with acceptance criteria
+    ├── AGENTS.md           agent routing
+    └── init.sh             environment check
 ```
-
-## Roles
-
-| Role | Role | Model tier |
-|-------|------|------------|
-| `explorer` | Read-only codebase and API research | Cheap |
-| `runner` | Noisy builds and test suites | Cheap |
-| `verifier` | **Mandatory** before any `passes: true` | Cheap |
-| `critic` | Adversarial review | Strong |
-| `migrator` | Bulk mechanical edits | Cheap |
-| `implementer` | One feature at a time | Strong |
-| `orchestrator` | OpenChamber sessions and scheduling | Cheap |
-
-## Security
-
-- `.env` is in `.gitignore`; template is `.env.example`
-- Secrets come from environment variables only, never hardcoded
-- Mutations are dry-run by default (`ALLOW_MUTATIONS=0`)
-- Google Ads budgets are in micros with a configurable cap
-- The database is a cache — it is regenerated from sources, not committed
 
 ## Verification
 
 ```bash
-# Run all tests
+# All tests
 python -m pytest tests/ -q
 
-# Verify all features
+# Verify every feature
 python scripts/verify_feature.py --all
 
 # Check for secrets
@@ -136,14 +134,29 @@ python scripts/secret_scan.py
 
 # Check wiki freshness
 python scripts/sync_wiki.py --check-freshness
+
+# Check wiki indexes are current
+python scripts/wiki_index.py --verify
 ```
 
 ## Documentation
 
+- [Specification](project/docs/specs/SPEC-001-platform.md) — goals, principles, requirements
 - [Architecture](project/docs/architecture.md) — measured facts, risks, gaps
+- [ADRs](project/docs/adr/) — 4 architecture decision records
+- [Roadmap](project/docs/ROADMAP.md) — stages, blockers, next chunks
 - [Progress log](project/docs/progress.md) — change history
 - [API reference](project/wiki/api-reference.md) — full Google/Microsoft API reference
 - [Runbooks](project/docs/runbooks/) — credential rotation, disaster recovery, cost monitoring
+
+## Security
+
+- `.env` is in `.gitignore`; template is `project/.env.example`
+- Secrets come from environment variables only, never hardcoded
+- Mutations are dry-run by default (`ALLOW_MUTATIONS=0`)
+- Google Ads budgets are validated in micros with a configurable cap
+- The database is a cache — regenerated from sources, not committed
+- Secret scan runs in CI on every push
 
 ## Contributing
 

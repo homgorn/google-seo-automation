@@ -5,28 +5,98 @@ on:
     branches: [master, main]
   pull_request:
     branches: [master, main]
+  schedule:
+    # Ночная проверка свежести вики и целостности БД — репозитории гниют.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  quality:
+    name: Quality gates
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: project
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Тесты используют ТОЛЬКО стандартную библиотеку. Полный
+      # requirements.txt тянет torch (~2GB) и ломает скорость CI.
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+
+      # Инициализация БД обязательна до verify_feature: скрипт читает
+      # data/wiki.db, которого в чистом checkout нет.
+      - name: Initialize database
+        run: python scripts/init_db.py
+
+      - name: Run tests with coverage
+        run: |
+          python -m pytest tests/ -q --cov=scripts --cov-report=term-missing
+
+      - name: Secret scan
+        run: python scripts/secret_scan.py
+
+      - name: Generate wiki indexes
+        run: python scripts/wiki_index.py
+
+      - name: Verify wiki index is current
+        run: python scripts/wiki_index.py --verify
+
+      - name: Verify features
+        # BLOCKED допустим (нет credentials), FAIL — нет.
+        # verify_feature сам вызывает pytest для F010, поэтому ставим guard.
+        env:
+          VERIFY_FEATURE_NO_PYTEST: "1"
+        run: python scripts/verify_feature.py --all
+
+      - name: Wiki freshness
+        run: python scripts/sync_wiki.py --check-freshness
+
+  weekly-refresh:
+    name: Weekly wiki refresh
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    permissions:
+      contents: write
+      issues: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dependencies
+      - name: Refresh wiki from Google
+        working-directory: project
         run: |
-          cd project
-          pip install -r requirements.txt
-      - name: Run tests
-        run: |
-          cd project
-          python -m pytest tests/ -q
-      - name: Secret scan
-        run: |
-          cd project
-          python scripts/secret_scan.py
-      - name: Verify features
-        run: |
-          cd project
-          python scripts/verify_feature.py --all
+          python scripts/init_db.py
+          python scripts/sync_wiki.py --full
+          python scripts/wiki_index.py
+      - name: Report drift
+        working-directory: project
+        run: python scripts/sync_wiki.py --check-freshness
+      - name: Open issue on drift
+        if: failure()
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: "Wiki refresh failed — API documentation may be stale"
+          body: |
+            The scheduled wiki refresh failed. API documentation may be stale.
+
+            Check the workflow log for details and run locally:
+
+            ```
+            cd project
+            python scripts/sync_wiki.py --full
+            python scripts/wiki_index.py
+            ```
+          labels:
+            - bug

@@ -18,7 +18,25 @@
       "Create structured data/schema markup implementation guides"
     ],
     "priority": 1,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "wiki содержит >=300 эндпоинтов из >=7 Google Discovery-документов",
+      "каждый источник зафиксирован в api_docs с content_hash",
+      "docs/architecture.md содержит измеренные счётчики и provenance",
+      "wiki/index.md + wiki/index.json сгенерированы скриптом",
+      "wiki/_data/graph.json содержит >=100 триплетов"
+    ],
+    "depends_on": [],
+    "blocked_by": [],
+    "test_refs": [
+      "tests/test_sync_wiki.py",
+      "tests/test_tooling.py"
+    ],
+    "script": "scripts/sync_wiki.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 12,
+    "uncovered_steps": [],
+    "status": "in_progress"
   },
   {
     "id": "F002",
@@ -33,7 +51,27 @@
       "Create search interface for LLM agents to query wiki"
     ],
     "priority": 1,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "БД создаётся idempotent: повторный init_db.py не падает",
+      "полнотекстовый поиск работает через FTS5 без внешних зависимостей",
+      "sync_runs фиксирует каждый прогон с статусом и счётчиками",
+      "change_log хранит историю изменений документов",
+      "эмбеддинги: dry-run работает всегда, реальный режим — при наличии chromadb"
+    ],
+    "depends_on": [
+      "F001"
+    ],
+    "blocked_by": [],
+    "test_refs": [
+      "tests/test_sync_wiki.py",
+      "tests/test_tooling.py"
+    ],
+    "script": "scripts/init_db.py, scripts/wiki_query.py, scripts/embed_wiki.py, scripts/wiki_index.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [],
+    "status": "in_progress"
   },
   {
     "id": "F003",
@@ -48,7 +86,29 @@
       "Implement GA4 audit and health check automation"
     ],
     "priority": 2,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "оба auth-метода поддержаны: service_account и oauth",
+      "property_id валидируется по формату properties/<numeric_id>",
+      "все 6 шагов фичи покрыты скриптом ga4_automation.py",
+      "живой вызов runReport возвращает данные (требует credentials)",
+      "BigQuery export: связь analytics_{property_id} работает"
+    ],
+    "depends_on": [
+      "F002"
+    ],
+    "blocked_by": [
+      "credentials: GOOGLE_APPLICATION_CREDENTIALS или GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN"
+    ],
+    "test_refs": [
+      "tests/test_automation_scripts.py",
+      "tests/test_common.py"
+    ],
+    "script": "scripts/ga4_automation.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [],
+    "status": "blocked"
   },
   {
     "id": "F004",
@@ -63,7 +123,29 @@
       "Build tag template library management"
     ],
     "priority": 2,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "workspace path собирается из account/container/workspace id",
+      "S02-S05 проверяют поля API: tags, triggers, variables, versions",
+      "S06 проверяет 6 audit-проверок (включая consent gates)",
+      "публикация версии заблокирована без ALLOW_MUTATIONS=1",
+      "живой цикл create->tag->trigger->version->publish работает"
+    ],
+    "depends_on": [
+      "F002"
+    ],
+    "blocked_by": [],
+    "test_refs": [
+      "tests/test_automation_scripts.py"
+    ],
+    "script": "scripts/gtm_automation.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [
+      "Implement consent mode configuration",
+      "Build tag template library management"
+    ],
+    "status": "in_progress"
   },
   {
     "id": "F005",
@@ -78,7 +160,30 @@
       "Build search performance dashboards and alerts"
     ],
     "priority": 2,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "GSC_SITE_URL обязателен; без него шаги дают BLOCKED, не PASS",
+      "sitemap CRUD: list/get/submit/delete",
+      "searchanalytics.query за 30 дней с учётом лага 2-3 дня",
+      "Indexing API: квота 200/день контролируется",
+      "URL inspection: вердикт indexStatus для ключевых URL"
+    ],
+    "depends_on": [
+      "F002"
+    ],
+    "blocked_by": [
+      "credentials: GSC_SITE_URL"
+    ],
+    "test_refs": [
+      "tests/test_automation_scripts.py"
+    ],
+    "script": "scripts/gsc_automation.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [
+      "Build search performance dashboards and alerts"
+    ],
+    "status": "blocked"
   },
   {
     "id": "F006",
@@ -93,7 +198,34 @@
       "Build automated reporting and budget optimization"
     ],
     "priority": 3,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "бюджеты в микросах: <1_000_000 отклоняется как FAIL",
+      "кампании создаются только в статусе PAUSED",
+      "GAQL без SELECT/FROM отклоняется",
+      "запрещённый join ad_group_criterion+search_term_view отклоняется",
+      "активация заблокирована без --activate и ALLOW_MUTATIONS=1",
+      "все 4 канала (SEARCH, DISPLAY, PMax, VIDEO) поддержаны"
+    ],
+    "depends_on": [
+      "F002"
+    ],
+    "blocked_by": [
+      "credentials: GOOGLE_ADS_DEVELOPER_TOKEN + GOOGLE_ADS_CUSTOMER_ID"
+    ],
+    "test_refs": [
+      "tests/test_automation_scripts.py",
+      "tests/test_common.py"
+    ],
+    "script": "scripts/ads_automation.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [
+      "Build keyword research and management automation",
+      "Create conversion tracking setup and validation",
+      "Build automated reporting and budget optimization"
+    ],
+    "status": "blocked"
   },
   {
     "id": "F007",
@@ -107,7 +239,25 @@
       "Implement audience and targeting management"
     ],
     "priority": 4,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "SOAP v13 и миграция на REST описаны",
+      "структуры сервисов (CampaignManagement, AdInsight, Bulk, Reporting) задокументированы",
+      "живые вызовы реализуются после получения developer token"
+    ],
+    "depends_on": [
+      "F002"
+    ],
+    "blocked_by": [
+      "credentials: MS_ADS_DEVELOPER_TOKEN",
+      "decision: SOAP или REST (рекомендовано REST)"
+    ],
+    "test_refs": [],
+    "script": null,
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 5,
+    "uncovered_steps": [],
+    "status": "blocked"
   },
   {
     "id": "F008",
@@ -122,7 +272,28 @@
       "Build AI search visibility dashboards"
     ],
     "priority": 2,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "цитирования в 6 LLM трекаются в aeo_citations",
+      "E-E-A-T оценивается по 4 измерениям с отраслевыми порогами",
+      "schema-рекомендации для AI перечисляют 4 типа (FAQPage, Article, Organization, Person)",
+      "конкурентный анализ даёт покрытие LLM и скорость цитирования",
+      "дашборд видимости агрегирует цитаты и аудиты"
+    ],
+    "depends_on": [
+      "F002"
+    ],
+    "blocked_by": [],
+    "test_refs": [
+      "tests/test_automation_scripts.py"
+    ],
+    "script": "scripts/aeo_automation.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [
+      "Build AI search visibility dashboards"
+    ],
+    "status": "in_progress"
   },
   {
     "id": "F009",
@@ -137,7 +308,24 @@
       "Implement audit trail and decision logging"
     ],
     "priority": 3,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "двунаправленная синхронизация: wiki->oc и oc->wiki",
+      "session-шаблоны для каждой фичи созданы",
+      "аудит-трейл: sync_runs + change_log",
+      "расписание задаётся конфигом"
+    ],
+    "depends_on": [
+      "F001",
+      "F002"
+    ],
+    "blocked_by": [],
+    "test_refs": [],
+    "script": "scripts/openchamber_sync.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [],
+    "status": "in_progress"
   },
   {
     "id": "F010",
@@ -152,7 +340,28 @@
       "Implement comprehensive logging and monitoring"
     ],
     "priority": 3,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "все скрипты проекта покрыты тестами",
+      "pytest зелёный",
+      "verify_feature.py даёт вердикт по каждой фиче",
+      "рекурсия verify_feature->pytest->verify_feature исключена"
+    ],
+    "depends_on": [
+      "F001",
+      "F002"
+    ],
+    "blocked_by": [],
+    "test_refs": [
+      "tests/test_tooling.py",
+      "tests/test_common.py",
+      "tests/test_automation_scripts.py"
+    ],
+    "script": "scripts/verify_feature.py",
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [],
+    "status": "in_progress"
   },
   {
     "id": "F011",
@@ -167,6 +376,27 @@
       "Build automated health checks and alerting"
     ],
     "priority": 4,
-    "passes": false
+    "passes": false,
+    "acceptance_criteria": [
+      "runbook по ротации credentials",
+      "runbook по восстановлению из данных",
+      "runbook по мониторингу стоимости",
+      "процедуры исполняемы и проверены"
+    ],
+    "depends_on": [
+      "F003",
+      "F004",
+      "F005",
+      "F006"
+    ],
+    "blocked_by": [],
+    "test_refs": [
+      "tests/test_tooling.py"
+    ],
+    "script": null,
+    "spec": "docs/specs/SPEC-001-platform.md",
+    "estimate_steps": 6,
+    "uncovered_steps": [],
+    "status": "in_progress"
   }
 ]
