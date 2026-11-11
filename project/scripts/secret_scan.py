@@ -2,6 +2,7 @@
 # Запуск: python scripts/secret_scan.py
 # Код выхода 0 = чисто, 1 = найдены подозрительные строки.
 
+import os
 import re
 import subprocess
 import sys
@@ -14,7 +15,15 @@ for _s in (sys.stdout, sys.stderr):
         except (ValueError, OSError):
             pass
 
-ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent
+# Сканируем КОРЕНЬ репозитория, а не только project/.
+# Раньше ROOT = project/, и корневой .env / .github/ / docs/ не проверялись —
+# реальная дыра: секрет, положенный в корень репо, проходил молча.
+# Если project/ лежит не в корне (например, репозиторий вложен), берём parent.
+REPO_ROOT = PROJECT_ROOT.parent if PROJECT_ROOT.parent.name else PROJECT_ROOT
+if not (REPO_ROOT / ".git").exists() and (PROJECT_ROOT / ".git").exists():
+    REPO_ROOT = PROJECT_ROOT
+ROOT = Path(os.environ.get("SECRET_SCAN_ROOT", REPO_ROOT)).resolve()
 
 # Ключи/токены по типам (список расширен по результатам ревью 2026-11-11)
 HARD_PATTERNS = [

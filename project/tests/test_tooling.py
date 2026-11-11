@@ -87,6 +87,35 @@ def test_secret_scan_detects_hard_patterns(text, label):
     assert label in found
 
 
+def test_secret_scan_scans_repo_root_not_only_project():
+    """РЕГРЕССИЯ: сканер проверял только project/ — корневой .env, .github/
+    и docs/ не проверялись. Секрет в корне проходил молча."""
+    from secret_scan import ROOT
+
+    # Корень сканирования должен быть выше project/
+    assert ROOT != PROJECT_ROOT, "сканируется только project/"
+    assert (ROOT / "project").exists() or ROOT.name == "project"
+
+
+def test_secret_scan_detects_secret_at_repo_root(tmp_path):
+    """Секрет в корне репозитория должен быть найден."""
+    fake_root = tmp_path / "repo"
+    (fake_root / "project" / "scripts").mkdir(parents=True)
+    (fake_root / ".env").write_text(
+        "GOOGLE_API_KEY=" + "AIza" + "SyD-1234567890abcdefghijklmnopqrstu",
+        encoding="utf-8",
+    )
+    env = os.environ.copy()
+    env["SECRET_SCAN_ROOT"] = str(fake_root)
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / "secret_scan.py")],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        timeout=60, cwd=PROJECT_ROOT, env=env,
+    )
+    assert proc.returncode == 1, "секрет в корне не найден"
+    assert "Google API key" in proc.stdout
+
+
 def test_secret_scan_skips_itself():
     """Сканер не должен находить собственные паттерны."""
     code, out = run("secret_scan.py")
