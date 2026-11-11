@@ -106,7 +106,11 @@ def connect():
         print(f"[!] DB не найден: {DB_PATH}")
         print("    Сначала: python3 scripts/init_db.py")
         sys.exit(1)
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH)
+    # ON DELETE CASCADE без этой pragma не работает: SQLite выключает
+    # foreign_keys по умолчанию на уровне соединения.
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
 
 
 def start_run(conn, source, run_type):
@@ -231,9 +235,10 @@ def sync_discovery(conn, key, cfg):
     try:
         doc = fetch_json(cfg["url"])
     except RuntimeError as e:
-        finish_run(conn, run_id, "failed", errors=[{"source": key, "error": str(e)}])
+        err = {"source": key, "error": str(e)}
+        finish_run(conn, run_id, "failed", errors=[err])
         print(f"  [FAIL] {key}: {e}")
-        return stats, []
+        return stats, [err]
 
     base_url = doc.get("baseUrl") or doc.get("rootUrl") or ""
     methods = extract_methods(doc)
@@ -258,32 +263,53 @@ def sync_discovery(conn, key, cfg):
     ).fetchone()
 
     if existing is None:
-        conn.execute(
-            """INSERT INTO api_docs
-               (source, category, title, url, content, content_hash, version, metadata)
-               VALUES (?,?,?,?,?,?,?,?)""",
-            (
-                key,
-                "discovery",
-                title,
-                cfg["url"],
-                body,
-                h,
-                cfg["version"],
-                json.dumps({"base_url": base_url, "methods": len(methods)}),
-            ),
-        )
-        doc_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-        stats["created"] += 1
-        is_new = True
+        try:
+            conn.execute(
+                """INSERT INTO api_docs
+                   (source, category, title, url, content, content_hash, version, metadata)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (
+                    key,
+                    "discovery",
+                    title,
+                    cfg["url"],
+                    body,
+                    h,
+                    cfg["version"],
+                    json.dumps({"base_url": base_url, "methods": len(methods)}),
+                ),
+            )
+            doc_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            stats["created"] += 1
+            is_new = True
+        except sqlite3.IntegrityError:
+            # Конкурентный sync вставил тот же URL — перечитываем и идём
+            # по ветке обновления, а не падаем.
+            conn.rollback()
+            existing = conn.execute(
+                "SELECT id, content_hash FROM api_docs WHERE url=?", (cfg["url"],)
+            ).fetchone()
+            if existing is None:
+                raise
+            doc_id = existing[0]
+            is_new = False
+            stats["created"] -= 1
+            if existing[1] != h:
+                conn.execute(
+                    """UPDATE api_docs SET content=?, content_hash=?, last_updated=?, last_fetched=?
+                       WHERE id=?""",
+                    (body, h, datetime.now(timezone.utc).isoformat(),
+                     datetime.now(timezone.utc).isoformat(), doc_id),
+                )
+                stats["updated"] += 1
     else:
         doc_id = existing[0]
         is_new = False
         if existing[1] != h:
             conn.execute(
-                """UPDATE api_docs SET content=?, content_hash=?, last_updated=?
+                """UPDATE api_docs SET content=?, content_hash=?, last_updated=?, last_fetched=?
                    WHERE id=?""",
-                (body, h, datetime.now(timezone.utc).isoformat(), doc_id),
+                (body, h, datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat(), doc_id),
             )
             conn.execute(
                 """INSERT INTO change_log (doc_id, change_type, field_changed, new_value, sync_run_id)
@@ -300,56 +326,79 @@ def sync_discovery(conn, key, cfg):
     stats["processed"] = len(methods)
 
     # 2) Каждый метод → api_endpoints
+    #    try/except обязателен: любое исключение здесь оставляло sync_run
+    #    в статусе 'running' навсегда (finish_run не вызывался).
     for m in methods:
-        full_url = base_url.rstrip("/") + "/" + m["path"].lstrip("/")
-        # Идентичность — (doc_id, resource, method_name), НЕ (method, path):
-        # пути Google это ШАБЛОНЫ ({+name}), одни и те же у десятков методов.
-        row = conn.execute(
-            """SELECT id, description FROM api_endpoints
-               WHERE doc_id=? AND resource=? AND method_name=?""",
-            (doc_id, m["resource"], m["method_name"]),
-        ).fetchone()
+        try:
+            full_url = base_url.rstrip("/") + "/" + m["path"].lstrip("/")
+            # Идентичность — (doc_id, resource, method_name), НЕ (method, path):
+            # пути Google это ШАБЛОНЫ ({+name}), одни и те же у десятков методов.
+            row = conn.execute(
+                """SELECT id, description FROM api_endpoints
+                   WHERE doc_id=? AND resource=? AND method_name=?""",
+                (doc_id, m["resource"], m["method_name"]),
+            ).fetchone()
 
-        if row is None:
-            conn.execute(
-                """INSERT INTO api_endpoints
-                   (doc_id, resource, method_name, method, path, full_url,
-                    description, parameters, auth_scopes, deprecated)
-                   VALUES (?,?,?,?,?,?,?,?,?,0)""",
-                (
-                    doc_id,
-                    m["resource"],
-                    m["method_name"],
-                    m["http_method"],
-                    m["path"],
-                    full_url,
-                    m["description"],
-                    json.dumps(m["params"]),
-                    json.dumps(m["scopes"]),
-                ),
-            )
-        elif row[1] != m["description"]:
-            conn.execute(
-                """UPDATE api_endpoints
-                   SET description=?, parameters=?, auth_scopes=?, path=?, method=?
-                   WHERE id=?""",
-                (
-                    m["description"],
-                    json.dumps(m["params"]),
-                    json.dumps(m["scopes"]),
-                    m["path"],
-                    m["http_method"],
-                    row[0],
-                ),
-            )
-            conn.execute(
-                """INSERT INTO change_log (doc_id, change_type, field_changed, sync_run_id)
-                   VALUES (?,?,?,?)""",
-                (doc_id, "updated", f"endpoint:{m['method_name']}", run_id),
-            )
+            if row is None:
+                try:
+                    conn.execute(
+                        """INSERT INTO api_endpoints
+                           (doc_id, resource, method_name, method, path, full_url,
+                            description, parameters, auth_scopes, deprecated)
+                           VALUES (?,?,?,?,?,?,?,?,?,0)""",
+                        (
+                            doc_id,
+                            m["resource"],
+                            m["method_name"],
+                            m["http_method"],
+                            m["path"],
+                            full_url,
+                            m["description"],
+                            json.dumps(m["params"]),
+                            json.dumps(m["scopes"]),
+                        ),
+                    )
+                except sqlite3.IntegrityError:
+                    # Конкурентный sync_wiki.py вставил ту же строку между
+                    # SELECT и INSERT — считаем, что эндпоинт уже есть.
+                    conn.rollback()
+                    row = conn.execute(
+                        """SELECT id, description FROM api_endpoints
+                           WHERE doc_id=? AND resource=? AND method_name=?""",
+                        (doc_id, m["resource"], m["method_name"]),
+                    ).fetchone()
+                    if row is None:
+                        raise
+            elif row[1] != m["description"]:
+                conn.execute(
+                    """UPDATE api_endpoints
+                       SET description=?, parameters=?, auth_scopes=?, path=?, method=?
+                       WHERE id=?""",
+                    (
+                        m["description"],
+                        json.dumps(m["params"]),
+                        json.dumps(m["scopes"]),
+                        m["path"],
+                        m["http_method"],
+                        row[0],
+                    ),
+                )
+                conn.execute(
+                    """INSERT INTO change_log (doc_id, change_type, field_changed, sync_run_id)
+                       VALUES (?,?,?,?)""",
+                    (doc_id, "updated", f"endpoint:{m['method_name']}", run_id),
+                )
+        except Exception as e:  # noqa: BLE001 — один битый метод не роняет весь sync
+            errors.append({
+                "source": key,
+                "endpoint": m.get("method_name", "?"),
+                "error": str(e),
+            })
+            print(f"  [WARN] {key}: {m.get('method_name', '?')}: {e}")
 
     conn.commit()
-    finish_run(conn, run_id, "completed", stats["processed"], stats["created"], stats["updated"], errors)
+    status = "completed" if not errors else "partial"
+    finish_run(conn, run_id, status, stats["processed"], stats["created"], stats["updated"], errors)
 
     flag = "NEW" if is_new else ("UPD" if stats["updated"] else "=  ")
     print(f"  [{flag}] {key:18s} {len(methods):4d} endpoints  ({stats['created']} docs created)")
@@ -383,54 +432,82 @@ def sync_local_wiki(conn, sources=None):
         return stats
 
     run_id = start_run(conn, "local_wiki", "incremental")
+    errors = []
 
     for md_path in sorted(WIKI_DIR.rglob("*.md")):
-        raw = md_path.read_text(encoding="utf-8")
-        fm, body = parse_frontmatter(raw)
+        # Один битый файл (не-UTF8, сломанный frontmatter, ошибка БД)
+        # не должен ронять весь ingest — раньше цикл падал, и sync_run
+        # оставался в статусе 'running' навсегда.
+        try:
+            raw = md_path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError) as e:
+            errors.append({"file": str(md_path), "error": str(e)})
+            print(f"  [WARN] {md_path.name}: не прочитан — {e}")
+            continue
+
+        try:
+            fm, body = parse_frontmatter(raw)
+        except Exception as e:  # noqa: BLE001
+            errors.append({"file": str(md_path), "error": f"frontmatter: {e}"})
+            print(f"  [WARN] {md_path.name}: frontmatter — {e}")
+            continue
+
         source = fm.get("source") or md_path.parent.name
         if sources and source not in sources and md_path.stem not in sources:
             continue
 
-        url = f"local://{md_path.relative_to(PROJECT_ROOT).as_posix()}"
-        h = sha256(raw)
-        existing = conn.execute(
-            "SELECT id, content_hash FROM api_docs WHERE url=?", (url,)
-        ).fetchone()
+        try:
+            url = f"local://{md_path.relative_to(PROJECT_ROOT).as_posix()}"
+            h = sha256(raw)
+            existing = conn.execute(
+                "SELECT id, content_hash FROM api_docs WHERE url=?", (url,)
+            ).fetchone()
 
-        stats["processed"] += 1
-        if existing is None:
-            conn.execute(
-                """INSERT INTO api_docs
-                   (source, category, title, url, content, content_hash, version, metadata)
-                   VALUES (?,?,?,?,?,?,?,?)""",
-                (
-                    source,
-                    fm.get("category", "guide"),
-                    fm.get("title", md_path.stem),
-                    url,
-                    raw,
-                    h,
-                    fm.get("version"),
-                    json.dumps({k: v for k, v in fm.items() if k not in ("title",)}, ensure_ascii=False),
-                ),
-            )
-            stats["created"] += 1
-            print(f"  [NEW] {md_path.relative_to(PROJECT_ROOT).as_posix()}")
-        elif existing[1] != h:
-            conn.execute(
-                """UPDATE api_docs SET content=?, content_hash=?, last_updated=?, version=? WHERE id=?""",
-                (raw, h, datetime.now(timezone.utc).isoformat(), fm.get("version"), existing[0]),
-            )
-            conn.execute(
-                """INSERT INTO change_log (doc_id, change_type, field_changed, new_value, sync_run_id)
-                   VALUES (?,?,?,?,?)""",
-                (existing[0], "updated", "local_markdown", f"sha256:{h[:12]}", run_id),
-            )
-            stats["updated"] += 1
-            print(f"  [UPD] {md_path.relative_to(PROJECT_ROOT).as_posix()}")
+            stats["processed"] += 1
+            if existing is None:
+                conn.execute(
+                    """INSERT INTO api_docs
+                       (source, category, title, url, content, content_hash, version, metadata)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (
+                        source,
+                        fm.get("category", "guide"),
+                        fm.get("title", md_path.stem),
+                        url,
+                        raw,
+                        h,
+                        fm.get("version"),
+                        json.dumps({k: v for k, v in fm.items() if k not in ("title",)}, ensure_ascii=False),
+                    ),
+                )
+                stats["created"] += 1
+                print(f"  [NEW] {md_path.relative_to(PROJECT_ROOT).as_posix()}")
+            elif existing[1] != h:
+                conn.execute(
+                    """UPDATE api_docs SET content=?, content_hash=?, last_updated=?, last_fetched=?, version=? WHERE id=?""",
+                    (raw, h, datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat(), fm.get("version"), existing[0]),
+                )
+                conn.execute(
+                    """INSERT INTO change_log (doc_id, change_type, field_changed, new_value, sync_run_id)
+                       VALUES (?,?,?,?,?)""",
+                    (existing[0], "updated", "local_markdown", f"sha256:{h[:12]}", run_id),
+                )
+                stats["updated"] += 1
+                print(f"  [UPD] {md_path.relative_to(PROJECT_ROOT).as_posix()}")
+            else:
+                # Content unchanged — still bump last_fetched so freshness check passes
+                conn.execute(
+                    "UPDATE api_docs SET last_fetched=? WHERE id=?",
+                    (datetime.now(timezone.utc).isoformat(), existing[0]),
+                )
+        except sqlite3.Error as e:
+            errors.append({"file": str(md_path), "error": f"db: {e}"})
+            print(f"  [WARN] {md_path.name}: БД — {e}")
+            conn.rollback()
 
     conn.commit()
-    finish_run(conn, run_id, "completed", stats["processed"], stats["created"], stats["updated"])
+    status = "completed" if not errors else "partial"
+    finish_run(conn, run_id, status, stats["processed"], stats["created"], stats["updated"], errors)
     return stats
 
 
@@ -440,7 +517,8 @@ def sync_local_wiki(conn, sources=None):
 def check_freshness(conn):
     cutoff = (datetime.now(timezone.utc) - timedelta(days=STALE_DAYS)).isoformat()
     rows = conn.execute(
-        """SELECT source, MAX(last_fetched), MAX(last_updated), COUNT(*)
+        """SELECT source, MAX(COALESCE(last_fetched, last_updated)),
+                  MAX(last_updated), COUNT(*)
            FROM api_docs GROUP BY source ORDER BY source"""
     ).fetchall()
 

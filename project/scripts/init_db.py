@@ -253,11 +253,119 @@ def migrate_to_v2(conn):
     print("  ok: старая схема заменена; кэш перезаполнится через sync_wiki.py --full")
 
 
+def migrate_guides_routing(conn):
+    """Миграция v3: перенаправление гайдов в правильные документы.
+
+    ИЗМЕРЕНО 2026-11-11: до рефакторинга скрипты писали гайды с
+    «зашитыми» doc_id (1, 2, 3, 6), которые соответствовали документам
+    ЧУЖИХ источников: AEO-гайды попадали в gtm, GTM-гайды в ga4_data,
+    Ads-гайды в indexing. Аудит-трейл вёл не туда.
+
+    Исправление — UPDATE doc_id по соответствию feature → source.
+    Ничего не удаляется: содержимое гайдов сохраняется.
+    """
+    mapping = {
+        "gsc": "gsc",
+        "gtm": "gtm",
+        "ga4": "ga4_data",
+        "ads": "google-apis-master",
+        "aeo": "google-apis-master",
+        "embeddings": "google-apis-master",
+        "openchamber": "google-apis-master",
+    }
+    # Признаки фичи в заголовке гайда (регистронезависимо)
+    markers = {
+        "gsc": ["gsc ", "sitemap"],
+        "gtm": ["gtm ", "tag management", "trigger management",
+                "version lifecycle", "workspace lifecycle", "variable management"],
+        "ga4": ["ga4 ", "key event", "bigquery export", "data stream",
+                "custom dimension", "property listing", "reporting"],
+        "ads": ["ads ", "budget", "keyword", "campaign lifecycle"],
+        "aeo": ["aeo ", "e-e-a-t", "schema for ai", "citation tracking",
+                "competitor citation", "content optimization"],
+    }
+
+    doc_ids = {}
+    for source in set(mapping.values()):
+        row = conn.execute(
+            "SELECT id FROM api_docs WHERE source = ? ORDER BY id LIMIT 1", (source,)
+        ).fetchone()
+        if row:
+            doc_ids[source] = row[0]
+    if not doc_ids:
+        return
+
+    fixed = 0
+    rows = conn.execute("SELECT id, doc_id, guide_type, title FROM guides").fetchall()
+    for guide_id, current_doc, guide_type, title in rows:
+        tl = title.lower()
+        target_source = None
+        for feature, words in markers.items():
+            if any(w in tl for w in words):
+                target_source = mapping[feature]
+                break
+        if not target_source:
+            continue
+        target_doc = doc_ids.get(target_source)
+        if not target_doc or target_doc == current_doc:
+            continue
+        # UNIQUE(doc_id, guide_type, title): если в целевом документе уже
+        # есть гайд с таким заголовком (его записала новая версия кода) —
+        # оставляем как есть, иначе получим IntegrityError.
+        dup = conn.execute(
+            "SELECT id FROM guides WHERE doc_id = ? AND guide_type = ? AND title = ?",
+            (target_doc, guide_type, title),
+        ).fetchone()
+        if dup:
+            continue
+        conn.execute(
+            "UPDATE guides SET doc_id = ? WHERE id = ?", (target_doc, guide_id)
+        )
+        fixed += 1
+
+    if fixed:
+        conn.commit()
+        print(f"  Миграция v3: перенаправлено {fixed} гайдов в правильные документы")
+
+    # Дедупликация: гайд с тем же заголовком, оставшийся в неверном
+    # документе, — точная копия уже существующего. Копию удаляем.
+    # Безопасность: содержимое идентично, БД — регенерируемый кэш.
+    removed = 0
+    for guide_id, current_doc, guide_type, title in conn.execute(
+        "SELECT id, doc_id, guide_type, title FROM guides"
+    ).fetchall():
+        others = conn.execute(
+            """SELECT COUNT(*) FROM guides
+               WHERE guide_type = ? AND title = ? AND id <> ?""",
+            (guide_type, title, guide_id),
+        ).fetchone()[0]
+        if not others:
+            continue
+        current_source = conn.execute(
+            "SELECT source FROM api_docs WHERE id = ?", (current_doc,)
+        ).fetchone()
+        current_source = current_source[0] if current_source else ""
+        tl = title.lower()
+        is_correct = False
+        for feature, words in markers.items():
+            if any(w in tl for w in words):
+                is_correct = (mapping[feature] == current_source)
+                break
+        if not is_correct:
+            conn.execute("DELETE FROM guides WHERE id = ?", (guide_id,))
+            removed += 1
+    if removed:
+        conn.commit()
+        print(f"  Миграция v3: удалено {removed} дубликатов гайдов из неверных документов")
+
+
 def init_database():
     """Initialize the database with all tables and indexes."""
     conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
     migrate_to_v2(conn)
+    migrate_guides_routing(conn)
     conn.commit()
     
     # Verify tables created

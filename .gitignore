@@ -1,0 +1,96 @@
+# ─────────────────────────────────────────────────────────────
+# Secrets — NEVER commit
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.json.key
+service-account*.json
+credentials.json
+client_secret*.json
+gha-creds*.json
+*-token.json
+token.json
+refresh_token.txt
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.keystore
+id_rsa*
+id_ed25519*
+
+# ─────────────────────────────────────────────────────────────
+# Local DB (regenerable: init_db.py + sync_wiki.py --full)
+# ─────────────────────────────────────────────────────────────
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/
+!data/.gitkeep
+
+# ─────────────────────────────────────────────────────────────
+# Logs, temp, coverage
+# ─────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+*.bak
+*.backup
+*.tmp
+*.temp
+tmp/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# ─────────────────────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ─────────────────────────────────────────────────────────────
+# Node
+# ─────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# ─────────────────────────────────────────────────────────────
+# IDE / OS
+# ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────────────────────
+# OpenChamber
+# ─────────────────────────────────────────────────────────────
+openchamber/sessions/
+openchamber/state/
+*.openchamber/
