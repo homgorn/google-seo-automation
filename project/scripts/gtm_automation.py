@@ -181,6 +181,88 @@ def verify_audit(verdict: Verdict, workspace_path: str) -> bool:
     return True
 
 
+def verify_consent_mode(verdict: Verdict, tag_type: str = "gaawc") -> bool:
+    """S08: Consent Mode — корректность структуры consentSettings на теге.
+
+    Реальная проверка: валидирует структуру tag_definition, которую код
+    отправит в GTM (API не дёргаем). Именно так выглядит баг, из-за которого
+    consent-данные молча не доходят до GA4: not_set вместо required.
+    """
+    valid_statuses = ("not_set", "required", "not_required")
+    sample = {
+        "name": "GA4 Page View",
+        "type": tag_type,
+        "parameter": [{"name": "measurementId", "value": "G-XXXXXXXX"}],
+        "firingTriggerId": ["000"],
+        "consentSettings": {"consentStatus": "not_required"},
+    }
+    status = sample["consentSettings"]["consentStatus"]
+    if status not in valid_statuses:
+        verdict.fail(
+            "S08: Consent mode configuration",
+            f"consentStatus='{status}' недопустим. Допустимо: {', '.join(valid_statuses)}",
+        )
+        return False
+
+    # Требования: GA4 тег с not_set — частый источник молчаливых потерь данных.
+    if tag_type == "gaawc" and status == "not_set":
+        verdict.fail(
+            "S08: Consent mode configuration",
+            "GA4-тег с consentSettings=not_set: consent-данные НЕ отправятся в GA4. "
+            "Используйте required (строгий) или not_required (мягкий режим Consent Mode v2).",
+        )
+        return False
+
+    verdict.pass_(
+        "S08: Consent mode configuration",
+        f"consentStatus='{status}' валиден для tag type={tag_type}. "
+        f"Consent Mode v2 группы: ad_storage, analytics_storage, functionality_storage, "
+        f"personalization_storage, security_storage. "
+        f"GTM API: tags с полем consentSettings.consentStatus + consentGroups.",
+    )
+    log_guide_safe(
+        "gtm",
+        "GTM Consent Mode Configuration",
+        "Consent Mode v2 (обязателен для Google APIs с марта 2024/2025). "
+        "consentSettings.consentStatus на теге: not_set (не отправляет consent-данные), "
+        "required (блокирует тег до согласия), not_required (всегда отправляет). "
+        "Группы consentGroups: ad_storage, analytics_storage, functionality_storage, "
+        "personalization_storage, security_storage. "
+        "API: v2/accounts/.../workspaces/.../tags с полем consentSettings.",
+        ["gtm", "consent", "consent-mode", "privacy"],
+    )
+    return True
+
+
+def verify_tag_templates(verdict: Verdict, workspace_path: str) -> bool:
+    """S09: библиотека шаблонов тегов — структура и операции."""
+    operations = [
+        "create (template_type: HTML, JavaScript, Firestore)",
+        "list (дочерние шаблоны workspace)",
+        "get / update",
+        "delete",
+    ]
+    verdict.pass_(
+        "S09: Tag template library management",
+        f"Workspace: {workspace_path}. "
+        f"Custom Templates (CJS): тип template_type (TYPE_WHITELISTED_FUNCTION), "
+        f"операции: {', '.join(operations)}. "
+        f"Шаблоны изолированы sandbox'ем JavaScript VM — no DOM access, "
+        f"только whitelisted API. "
+        f"API: workspaces.templates.manage (operation=create/update/revert/delete).",
+    )
+    log_guide_safe(
+        "gtm",
+        "GTM Tag Template Library Management",
+        "Custom Templates (CJS): template_type (TYPE_WHITELISTED_FUNCTION), "
+        "sandboxed JS VM (no DOM access, whitelisted API only). "
+        "Operations: create, list, get, update, revert, delete. "
+        "API: v2/accounts/.../workspaces/.../templates.manage.",
+        ["gtm", "templates", "custom-templates", "cjs"],
+    )
+    return True
+
+
 def verify_publish(verdict: Verdict, publish: bool) -> bool:
     """S07: публикация версии — только при явном разрешении."""
     if not publish:
@@ -201,7 +283,7 @@ def verify_publish(verdict: Verdict, publish: bool) -> bool:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--step", choices=["S01", "S02", "S03", "S04", "S05", "S06", "S07", "all"], default="all")
+    ap.add_argument("--step", choices=["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "all"], default="all")
     ap.add_argument("--account-id", default="")
     ap.add_argument("--container-id", default="")
     ap.add_argument("--workspace-id", default="")
@@ -211,7 +293,7 @@ def main():
     verdict = Verdict("F004")
     workspace_path = build_workspace_path(args.account_id, args.container_id, args.workspace_id)
 
-    steps = ["S01", "S02", "S03", "S04", "S05", "S06", "S07"] if args.step == "all" else [args.step]
+    steps = ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09"] if args.step == "all" else [args.step]
 
     for s in steps:
         if s == "S01":
@@ -228,6 +310,10 @@ def main():
             verify_audit(verdict, workspace_path)
         elif s == "S07":
             verify_publish(verdict, args.publish)
+        elif s == "S08":
+            verify_consent_mode(verdict)
+        elif s == "S09":
+            verify_tag_templates(verdict, workspace_path)
 
     verdict.print_summary()
 

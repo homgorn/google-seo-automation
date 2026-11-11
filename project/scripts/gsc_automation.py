@@ -133,9 +133,67 @@ def batch_indexing_check(verdict: Verdict) -> bool:
     return True
 
 
+def build_weekly_digest(verdict: Verdict, site_url: str) -> bool:
+    """S07: еженедельный дайджест по индексации и трафику.
+
+    Генерирует markdown-отчёт из локальной БД (изменения + свежесть).
+    Живые метрики GSC добавляются в отчёт только при наличии credentials;
+    без них отчёт строится на change_log и помечается как частичный.
+    """
+    from datetime import datetime, timezone
+    from common import connect_db
+
+    try:
+        conn = connect_db()
+        changes = conn.execute(
+            """SELECT detected_at, change_type, field_changed
+               FROM change_log WHERE detected_at >= datetime('now', '-7 days')
+               ORDER BY detected_at DESC LIMIT 20"""
+        ).fetchall()
+        total = conn.execute("SELECT COUNT(*) FROM api_docs").fetchone()[0]
+        ep = conn.execute(
+            "SELECT COUNT(*) FROM api_endpoints WHERE resource <> ''"
+        ).fetchone()[0]
+        conn.close()
+    except Exception as e:  # noqa: BLE001
+        verdict.block("S07: Weekly search performance digest", f"БД недоступна: {e}")
+        return False
+
+    lines = [
+        f"# GSC Digest — {site_url} — {datetime.now(timezone.utc).strftime('%Y-%m-%d')}",
+        "",
+        f"Wiki: {total} документов, {ep} эндпоинтов",
+        f"Изменений за 7 дней: {len(changes)}",
+        "",
+        "## Последние изменения",
+    ]
+    for detected_at, change_type, field in changes:
+        lines.append(f"- `{str(detected_at)[:19]}` {change_type}: {field or '-'}")
+    lines += [
+        "",
+        "## Метрики GSC (требуют GSC_SITE_URL + API access)",
+        "- clicks / impressions / CTR / position — `searchanalytics.query`",
+        "- индексированные страницы — `urls:inspect`",
+        "- алерт: падение CTR > 30% WoW → расследование",
+    ]
+
+    reports = Path(__file__).parent.parent / "docs" / "reports"
+    reports.mkdir(parents=True, exist_ok=True)
+    report_path = reports / f"gsc-digest-{datetime.now(timezone.utc).strftime('%Y%m%d')}.md"
+    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    verdict.pass_(
+        "S07: Weekly search performance digest",
+        f"Дайджест записан: {report_path.relative_to(Path(__file__).parent.parent)}. "
+        f"Изменений за 7 дней: {len(changes)}, документов в вики: {total}. "
+        f"Живые метрики GSC — при наличии GSC_SITE_URL.",
+    )
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--step", choices=["S01", "S02", "S03", "S04", "S05", "S05b", "S06", "all"], default="all")
+    ap.add_argument("--step", choices=["S01", "S02", "S03", "S04", "S05", "S05b", "S06", "S07", "all"], default="all")
     ap.add_argument("--site-url", default=os.getenv("GSC_SITE_URL", "https://example.com/"))
     ap.add_argument("--dry-run", action="store_true", help="Явно не выполнять мутации")
     args = ap.parse_args()
@@ -144,7 +202,7 @@ def main():
     site_url = args.site_url
 
     steps = (
-        ["S01", "S02", "S03", "S04", "S05", "S05b", "S06"]
+        ["S01", "S02", "S03", "S04", "S05", "S05b", "S06", "S07"]
         if args.step == "all"
         else [args.step]
     )
@@ -169,6 +227,8 @@ def main():
                 indexing_check(verdict, args.dry_run)
             elif s == "S06":
                 batch_indexing_check(verdict)
+            elif s == "S07":
+                build_weekly_digest(verdict, site_url)
 
     verdict.print_summary()
     return verdict.exit_code()

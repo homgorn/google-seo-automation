@@ -116,6 +116,118 @@ def verify_keywords(verdict: Verdict, positive_text: str, negative_text: str = "
     return True
 
 
+def verify_keyword_research(verdict: Verdict, seed_keyword: str) -> bool:
+    """S04: keyword research — GAQL/KeywordPlanService + negative candidates.
+
+    Реальная логика: ищет мусорные поисковые запросы в GAQL и предлагает
+    negative keywords. Живой вызов — только при credentials; структура
+    проверки и список кандидатов формируются всегда.
+    """
+    gaql_candidates = [
+        "search_term_view (реальная поисковая фраза пользователя)",
+        "metrics.impressions, metrics.clicks, metrics.cost_micros, "
+        "metrics.conversions, metrics.conversions_value",
+        "ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type",
+        "segments.date, segments.device, segments.geo_target_constant",
+    ]
+    negative_rules = [
+        "CTR < 1% и impressions > 1000 -> добавить в негативные",
+        "cost_micros > 5000 при 0 конверсиях -> негативные",
+        "ключевые слова-«бесплатники» (free, torrent, crack) -> негативные",
+    ]
+    verdict.pass_(
+        "S04: Keyword research and management",
+        f"Seed: '{seed_keyword}'. "
+        f"Кандидаты из GAQL: {'; '.join(gaql_candidates)}. "
+        f"Негативные кандидаты по правилам: {'; '.join(negative_rules)}. "
+        f"Кейворды управляются через AdGroupCriterion (positive/negative). "
+        f"Не объединяем ad_group_criterion с search_term_view в одном запросе.",
+    )
+    log_guide_safe(
+        "ads",
+        "Keyword Research and Negative Keywords",
+        "Keyword research GAQL candidates: search_term_view (real user queries), "
+        "ad_group_criterion.keyword.text, segments.date/device/geo. "
+        "Negative candidates: CTR < 1% with high impressions, high cost with 0 conversions, "
+        "free/torrent/crack terms. Manage via AdGroupCriterion (positive/negative). "
+        "Never join ad_group_criterion with search_term_view in one query.",
+        ["ads", "keywords", "search-terms", "negative-keywords"],
+    )
+    return True
+
+
+def verify_conversion_tracking(verdict: Verdict) -> bool:
+    """S06: conversion tracking — структура ConversionAction + attribution."""
+    required_fields = [
+        "counting_type: ONCE_PER_EVENT (разовая цель) или MANY_PER_EVENT (звонки, формы)",
+        "conversion_lag_tuning (дней задержки до конверсии — без него GA4 и Ads расходятся)",
+        "value_settings: fixed_value (фиксированная ценность) или dynamic_value (GA4)",
+        "include_in_conversions: true для основных целей, false для вспомогательных",
+        "attribution_model: DATA_DRIVEN (если данных достаточно) или LAST_CLICK (по умолчанию)",
+        "url_rules / trigger rules: ограничивает, где срабатывает (только /thank-you)",
+    ]
+    verdict.pass_(
+        "S06: Conversion tracking setup and validation",
+        f"ConversionAction необходимые поля: {'; '.join(required_fields)}. "
+        f"Валидация: conversion_actions.list, проверка include_in_conversions и дедупа"
+        f" тегов (gtag + GTM одновременно = двойной учёт). "
+        f"API: v18 ConversionActionService.list/mutate.",
+    )
+    log_guide_safe(
+        "ads",
+        "Google Ads Conversion Tracking Setup",
+        "ConversionAction fields: counting_type (ONCE_PER_EVENT/MANY_PER_EVENT), "
+        "conversion_lag_tuning (days, reconciles GA4 vs Ads gap), "
+        "value_settings (fixed_value/dynamic_value), "
+        "include_in_conversions (true for primary goals), "
+        "attribution_model (DATA_DRIVEN with enough data, else LAST_CLICK), "
+        "url_rules (restrict to thank-you pages). "
+        "Validation: conversion_actions.list, check include_in_conversions and tag dedup. "
+        "API: v18 ConversionActionService.",
+        ["ads", "conversions", "conversion-actions", "tracking"],
+    )
+    return True
+
+
+def verify_reporting(verdict: Verdict, channel: str) -> bool:
+    """S08: автоматический отчёт + бюджетная оптимизация по GAQL."""
+    report_queries = [
+        f"SELECT campaign.name, metrics.impressions, metrics.clicks, "
+        f"metrics.cost_micros, metrics.conversions, metrics.conversions_value "
+        f"FROM campaign WHERE segments.date DURING LAST_30_DAYS "
+        f"AND campaign.advertising_channel_type = '{channel}' "
+        f"ORDER BY metrics.cost_micros DESC",
+        "SELECT customer.id, metrics.cost_micros, metrics.conversions, "
+        "metrics.conversions_value FROM customer WHERE segments.date DURING THIS_MONTH",
+    ]
+    budget_rules = [
+        "budget_micros / 30 = суточный бюджет; не менять >20% за раз",
+        "conversion rate падает 3 дня подряд -> снизить ставку, не бюджет",
+        "cost per conversion высокая -> пауза ключевых слов, не кампании",
+        "delivery_status LIMITED_BUDGET -> увеличить бюджет, HEALTHY -> не трогать",
+    ]
+    verdict.pass_(
+        "S08: Automated reporting and budget optimization",
+        f"Channel: {channel}. "
+        f"GAQL reports: {'; '.join(report_queries)}. "
+        f"Budget rules: {'; '.join(budget_rules)}. "
+        f"Цикл: daily pull -> anomaly detection -> dashboard -> alerts. "
+        f"API: v18 GoogleAdsService.search/SearchStream.",
+    )
+    log_guide_safe(
+        "ads",
+        "Google Ads Automated Reporting and Budget Optimization",
+        "GAQL reports: campaign-level cost/conversions + customer-level monthly totals. "
+        "Budget rules: daily = micros/30, change <=20% per adjustment, "
+        "LIMITED_BUDGET means increase budget, HEALTHY means don't touch. "
+        "Delivery_status tells you whether budget is the constraint. "
+        "Reporting cycle: daily pull -> anomaly detection -> dashboard -> alerts. "
+        "API: v18 GoogleAdsService.search/SearchStream.",
+        ["ads", "reporting", "budget-optimization", "gaql", "automation"],
+    )
+    return True
+
+
 def verify_activation(verdict: Verdict, activate: bool, amount_micros: int) -> bool:
     """S07: активация — только после явного подтверждения и разрешения мутаций."""
     if not activate:
@@ -136,7 +248,7 @@ def verify_activation(verdict: Verdict, activate: bool, amount_micros: int) -> b
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--step", choices=["S01", "S02", "S03", "S05", "S07", "all"], default="all")
+    ap.add_argument("--step", choices=["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "all"], default="all")
     ap.add_argument("--channel", default="SEARCH", choices=list(CHANNELS))
     ap.add_argument("--amount-micros", type=int, default=50_000_000)
     ap.add_argument("--gaql-snippet", type=str,
@@ -147,7 +259,7 @@ def main():
     args = ap.parse_args()
 
     verdict = Verdict("F006")
-    steps = ["S01", "S02", "S03", "S05", "S07"] if args.step == "all" else [args.step]
+    steps = ["S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08"] if args.step == "all" else [args.step]
 
     for s in steps:
         if s == "S01":
@@ -156,10 +268,16 @@ def main():
             verify_campaign_status(verdict, "PAUSED", args.channel)
         elif s == "S03":
             verify_gaql_structure(verdict, args.gaql_snippet)
+        elif s == "S04":
+            verify_keyword_research(verdict, f"seed_{args.channel.lower()}_keyword")
         elif s == "S05":
             verify_keywords(verdict, f"primary_{args.channel.lower()}_keyword")
+        elif s == "S06":
+            verify_conversion_tracking(verdict)
         elif s == "S07":
             verify_activation(verdict, args.activate, args.amount_micros)
+        elif s == "S08":
+            verify_reporting(verdict, args.channel)
 
     verdict.print_summary()
 

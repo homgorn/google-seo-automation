@@ -90,6 +90,20 @@ def test_gsc_indexing_step_mentions_quota():
     assert "200" in out  # квота Indexing API
 
 
+def test_gsc_weekly_digest_creates_report():
+    """Дайджест создаётся файлом и содержит 7-дневние изменения."""
+    code, out = run(
+        "gsc_automation.py", "--step", "S07", "--site-url", "https://mysite.com/"
+    )
+    assert code == EXIT_PASS, out
+    assert "Дайджест" in out or "digest" in out.lower()
+    # файл отчёта создан
+    reports = list((PROJECT_ROOT / "docs" / "reports").glob("gsc-digest-*.md"))
+    assert reports, "файл дайджеста не создан"
+    content = reports[0].read_text(encoding="utf-8")
+    assert "Метрики GSC" in content
+
+
 # ── Ads (F006) ──────────────────────────────────────────────────
 
 def test_ads_budget_pass():
@@ -149,6 +163,33 @@ def test_ads_gaql_forbidden_join_detected():
     assert code == EXIT_FAIL, out
 
 
+def test_ads_keyword_research_mentions_negative_candidates():
+    code, out = run("ads_automation.py", "--step", "S04")
+    assert code == EXIT_PASS, out
+    content = guide_content("Keyword Research and Negative Keywords")
+    assert content is not None, "гайд keyword research не записан"
+    assert "search_term_view" in content.lower()
+    assert "ad_group_criterion" in content.lower()
+
+
+def test_ads_conversion_tracking_in_guides():
+    code, out = run("ads_automation.py", "--step", "S06")
+    assert code == EXIT_PASS, out
+    content = guide_content("Google Ads Conversion Tracking Setup")
+    assert content is not None, "гайд conversion tracking не записан"
+    assert "counting_type" in content
+    assert "include_in_conversions" in content
+
+
+def test_ads_reporting_in_guides():
+    code, out = run("ads_automation.py", "--step", "S08", "--channel", "PMax")
+    assert code == EXIT_PASS, out
+    content = guide_content("Google Ads Automated Reporting and Budget Optimization")
+    assert content is not None, "гайд reporting не записан"
+    assert "cost" in content
+    assert "LIMITED_BUDGET" in content
+
+
 # ── GTM (F004) ──────────────────────────────────────────────────
 
 def test_gtm_workspace_blocked_without_ids():
@@ -179,6 +220,30 @@ def test_gtm_audit_lists_six_checks():
     for marker in ("duplicate", "broken triggers", "unused variables",
                    "consent", "orphan folders", "version drift"):
         assert marker in content.lower(), f"нет проверки '{marker}'"
+
+
+def test_gtm_consent_mode_validates_status():
+    code, out = run("gtm_automation.py", "--step", "S08")
+    assert code == EXIT_PASS, out
+    assert "consentStatus" in out
+    assert "ad_storage" in out
+
+
+def test_gtm_consent_mode_in_guides():
+    run("gtm_automation.py", "--step", "S08")
+    content = guide_content("GTM Consent Mode Configuration")
+    assert content is not None, "гайд Consent Mode не записан"
+    assert "not_set" in content
+    assert "required" in content
+    assert "not_required" in content
+
+
+def test_gtm_tag_templates_in_guides():
+    code, out = run("gtm_automation.py", "--step", "S09")
+    assert code == EXIT_PASS, out
+    content = guide_content("GTM Tag Template Library Management")
+    assert content is not None, "гайд шаблонов не записан"
+    assert "templates" in content.lower()
 
 
 # ── AEO (F008) ──────────────────────────────────────────────────

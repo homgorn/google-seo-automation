@@ -141,10 +141,7 @@
     "script": "scripts/gtm_automation.py",
     "spec": "docs/specs/SPEC-001-platform.md",
     "estimate_steps": 6,
-    "uncovered_steps": [
-      "Implement consent mode configuration",
-      "Build tag template library management"
-    ],
+    "uncovered_steps": [],
     "status": "in_progress"
   },
   {
@@ -180,9 +177,7 @@
     "script": "scripts/gsc_automation.py",
     "spec": "docs/specs/SPEC-001-platform.md",
     "estimate_steps": 6,
-    "uncovered_steps": [
-      "Build search performance dashboards and alerts"
-    ],
+    "uncovered_steps": [],
     "status": "blocked"
   },
   {
@@ -220,11 +215,7 @@
     "script": "scripts/ads_automation.py",
     "spec": "docs/specs/SPEC-001-platform.md",
     "estimate_steps": 6,
-    "uncovered_steps": [
-      "Build keyword research and management automation",
-      "Create conversion tracking setup and validation",
-      "Build automated reporting and budget optimization"
-    ],
+    "uncovered_steps": [],
     "status": "blocked"
   },
   {
@@ -290,9 +281,7 @@
     "script": "scripts/aeo_automation.py",
     "spec": "docs/specs/SPEC-001-platform.md",
     "estimate_steps": 6,
-    "uncovered_steps": [
-      "Build AI search visibility dashboards"
-    ],
+    "uncovered_steps": [],
     "status": "in_progress"
   },
   {

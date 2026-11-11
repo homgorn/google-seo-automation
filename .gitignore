@@ -46,6 +46,8 @@ logs/
 *.temp
 tmp/
 .cache/
+#Generated reports (wiki digest exports) — regenerable artifacts
+project/docs/reports/
 .coverage
 .coverage.*
 coverage.xml

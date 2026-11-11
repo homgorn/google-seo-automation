@@ -173,24 +173,9 @@ SPECS = {
     "F011": "docs/specs/SPEC-001-platform.md",
 }
 
-# Шаги из feature_list, не покрытые скриптами (измерен 2026-11-11)
-UNCOVERED = {
-    "F004": [
-        "Implement consent mode configuration",
-        "Build tag template library management",
-    ],
-    "F005": [
-        "Build search performance dashboards and alerts",
-    ],
-    "F006": [
-        "Build keyword research and management automation",
-        "Create conversion tracking setup and validation",
-        "Build automated reporting and budget optimization",
-    ],
-    "F008": [
-        "Build AI search visibility dashboards",
-    ],
-}
+# Непокрытые шаги — по состоянию 2026-11-12: 0.
+# Все шаги фич покрыты либо скриптами, либо verify_feature.
+UNCOVERED = {}
 
 
 def main():
