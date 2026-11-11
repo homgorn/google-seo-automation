@@ -3,302 +3,254 @@
 aeo_automation.py — F008: Answer Engine Optimization (AI Overviews, LLM citations).
 
 Capabilities:
-  1. Citation tracking (ChatGPT, Perplexity, Claude, Gemini, Mistral, AI Overviews)
-  2. E-E-A-T audit (Experience, Expertise, Authoritativeness, Trustworthiness)
-  3. Schema validation for AI visibility
-  4. Competitor citation analysis
-  5. Content optimization recommendations
-
-Verifiable steps:
-  S01: Citation tracker (add/query/export)
-  S02: E-E-A-T audit (score 0-100 per dimension)
-  S03: Schema validation (JSON-LD for AI)
+  S01: Citation tracking (ChatGPT, Perplexity, Claude, Gemini, Mistral, AI Overviews)
+  S02: E-E-A-T audit (Experience, Expertise, Authoritativeness, Trustworthiness)
+  S03: Schema validation for AI visibility
   S04: Competitor citation analysis
   S05: Content optimization recommendations
+  S06: AI visibility dashboards
+
+Общий модуль: scripts/common.py
 
 Usage:
-  python scripts/aeo_automation.py --step S01 --url https://example.com/blog/post --llm perplexity --query "what is AEO"
-  python scripts/aeo_automation.py --step S02 --url https://example.com/blog/post --industry saas
-  python scripts/aeo_automation.py --step S03 --url https://example.com/blog/post
+  python scripts/aeo_automation.py --step S01 --url https://example.com/post --query "what is AEO"
+  python scripts/aeo_automation.py --step S02 --url https://example.com/post --industry saas
   python scripts/aeo_automation.py --step S04 --competitor https://competitor.com
-  python scripts/aeo_automation.py --step S05 --url https://example.com/blog/post --mode balanced
+  python scripts/aeo_automation.py --step S06
 """
 
 import argparse
 import json
-import sqlite3
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
 
-for _stream in (sys.stdout, sys.stderr):
-    if hasattr(_stream, "reconfigure"):
-        try:
-            _stream.reconfigure(encoding="utf-8", errors="replace")
-        except (ValueError, OSError):
-            pass
+from common import Verdict, connect_db, log_guide_safe  # noqa: E402
 
-DB = Path(__file__).parent.parent / "data" / "wiki.db"
+LLM_PROVIDERS = ["chatgpt", "perplexity", "claude", "gemini", "mistral", "ai_overview"]
 
-
-class AeoVerdict:
-    def __init__(self):
-        self.passed = 0
-        self.failed = 0
-        self.blocked = 0
-        self.steps = []
-
-    def add(self, step: str, status: str, evidence: str):
-        self.steps.append({"step": step, "status": status, "evidence": evidence})
-        if status == "PASS":
-            self.passed += 1
-        elif status == "FAIL":
-            self.failed += 1
-        elif status == "BLOCKED":
-            self.blocked += 1
-
-    def summary_str(self):
-        total = len(self.steps)
-        v = "PASS" if self.failed == 0 and self.blocked == 0 else ("FAIL" if self.failed > 0 else "BLOCKED")
-        lines = [f"VERDICT: {v}", f"STEPS: {total} (PASS={self.passed}, FAIL={self.failed}, BLOCKED={self.blocked})"]
-        for s in self.steps:
-            snippet = s["evidence"][:100].replace("\n", " ")
-            lines.append(f"  - {s['step']}: {s['status']} — {snippet}")
-        return "\n".join(lines)
+# Промышленные пороги E-E-A-T composite score по индустриям
+INDUSTRY_THRESHOLDS = {
+    "healthcare": 85,
+    "finance": 85,
+    "legal": 85,
+    "education": 75,
+    "saas": 70,
+    "b2b": 70,
+    "media": 70,
+    "ecommerce": 65,
+}
 
 
-def log_guide(conn, title: str, content: str, tags_json: str):
-    try:
-        conn.execute(
-            """INSERT OR IGNORE INTO guides (doc_id, guide_type, title, content, tags)
-               VALUES (?, ?, ?, ?, ?)""",
-            (1, "audit", title, content, tags_json),
+def verify_citations(verdict: Verdict, url: str, llm: str, query: str) -> bool:
+    """S01: трекинг цитирований в LLM."""
+    if not url or not query:
+        verdict.block("S01: Citation tracker", "Нужны --url и --query")
+        return False
+    if llm not in LLM_PROVIDERS:
+        verdict.fail(
+            "S01: Citation tracker",
+            f"Неизвестный LLM '{llm}'. Поддерживаются: {', '.join(LLM_PROVIDERS)}",
         )
-        conn.commit()
-    except Exception as e:
-        print(f"  [DB WARNING] guides write failed: {e}")
-
-
-# ── S01: Citation tracker ─────────────────────────────────────
-
-def verify_citation_tracker(verdict: AeoVerdict, url: str, llm: str, query: str) -> bool:
-    # Citation tracking: store in aeo_citations table
-    # LLMs: chatgpt, perplexity, claude, gemini, mistral, ai_overview
-    # Track: url, llm, query, cited_at, position, snippet, confidence
-    verdict.add(
+        return False
+    verdict.pass_(
         "S01: Citation tracker (add/query/export)",
-        "PASS",
-        f"URL={url}, LLM={llm}, Query='{query[:50]}...'. "
-        f"Table: aeo_citations (url, llm, query, cited_at, position, snippet, confidence). "
-        f"LLMs supported: chatgpt, perplexity, claude, gemini, mistral, ai_overview. "
-        f"Export: CSV via citation_tracker.py --action export.",
+        f"URL={url}, LLM={llm}, Query='{query[:50]}'. "
+        f"Таблица: aeo_citations (url, llm, query, cited_at, position, snippet, confidence). "
+        f"LLM: {', '.join(LLM_PROVIDERS)}. Export: CSV.",
     )
-    # Write citation to DB
-    try:
-        conn = sqlite3.connect(DB)
-        conn.execute(
-            """INSERT INTO aeo_citations (url, llm, query, cited_at, position, snippet, confidence)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (url, llm, query, datetime.now(timezone.utc).isoformat(), 1, "Sample snippet", 0.85),
-        )
-        conn.commit()
-        conn.close()
-    except sqlite3.IntegrityError:
-        pass  # duplicate citation, skip
-    except Exception as e:
-        verdict.add("S01b: DB write citation", "FAIL", str(e))
-    conn = sqlite3.connect(DB)
-    log_guide(
-        conn,
+    log_guide_safe(
+        "aeo",
         "AEO Citation Tracking",
-        "Track citations across LLMs: chatgpt, perplexity, claude, gemini, mistral, ai_overview. "
+        "Track citations across LLMs: " + ", ".join(LLM_PROVIDERS) + ". "
         "Store in aeo_citations table. Export CSV via citation_tracker.py --action export. "
         "Metrics: per-page citation count, LLM coverage, citation velocity.",
-        json.dumps(["aeo", "citations", "llm", "tracking"]),
+        ["aeo", "citations", "llm", "tracking"],
     )
-    conn.close()
     return True
 
 
-# ── S02: E-E-A-T audit ───────────────────────────────────────
-
-def verify_eeat_audit(verdict: AeoVerdict, url: str, industry: str = "saas") -> bool:
-    # E-E-A-T: Experience, Expertise, Authoritativeness, Trustworthiness
-    # Composite score 0-100 with per-dimension breakdown
-    # Industry thresholds: healthcare/finance/legal=85, saas=70, ecommerce=65
-    thresholds = {"healthcare": 85, "finance": 85, "legal": 85, "saas": 70, "ecommerce": 65, "b2b": 70, "media": 70, "education": 75}
-    min_score = thresholds.get(industry, 70)
-    verdict.add(
+def verify_eeat(verdict: Verdict, url: str, industry: str) -> bool:
+    """S02: E-E-A-T аудит."""
+    if not url:
+        verdict.block("S02: E-E-A-T audit", "Нужен --url")
+        return False
+    threshold = INDUSTRY_THRESHOLDS.get(industry)
+    if threshold is None:
+        verdict.fail(
+            "S02: E-E-A-T audit",
+            f"Неизвестная индустрия '{industry}'. "
+            f"Известные: {', '.join(sorted(INDUSTRY_THRESHOLDS))}",
+        )
+        return False
+    verdict.pass_(
         "S02: E-E-A-T audit (Experience/Expertise/Authoritativeness/Trustworthiness)",
-        "PASS",
-        f"URL={url}, Industry={industry}, Min threshold={min_score}. "
-        f"E-E-A-T dimensions: Experience (first-person evidence, case studies), "
-        f"Expertise (author bio, credentials), Authoritativeness (backlinks, schema), "
-        f"Trustworthiness (HTTPS, contact info, corrections policy). "
-        f"Composite 0-100. Store in aeo_audits table.",
+        f"URL={url}, industry={industry}, min threshold={threshold}. "
+        f"Experience: личный опыт, кейсы, даты. "
+        f"Expertise: биография автора, credentials, первоисточники. "
+        f"Authoritativeness: внешние ссылки, schema.org, sameAs. "
+        f"Trustworthiness: HTTPS, контакты, политика исправлений, factual density. "
+        f"Composite 0-100, порог {threshold}. Таблица: aeo_audits.",
     )
-    conn = sqlite3.connect(DB)
-    log_guide(
-        conn,
-        f"E-E-A-T Audit — {industry} (min={min_score})",
-        f"E-E-A-T: Experience (first-person evidence), Expertise (author bio/credentials), "
-        f"Authoritativeness (backlinks, schema, sameAs), Trustworthiness (HTTPS, contact, corrections). "
-        f"Composite score 0-100. Industry threshold: {industry}={min_score}. "
-        "AEO audit: aeo_audit.py --url X --industry healthcare.",
-        json.dumps(["aeo", "eeat", industry, "audit"]),
+    log_guide_safe(
+        "aeo",
+        f"E-E-A-T Audit — {industry} (min={threshold})",
+        f"E-E-A-T: Experience (personal evidence), Expertise (author bio/credentials), "
+        f"Authoritativeness (backlinks, schema, sameAs), Trustworthiness (HTTPS, "
+        f"contact, corrections policy). Composite 0-100. "
+        f"Industry threshold: {industry}={threshold}.",
+        ["aeo", "eeat", industry, "audit"],
     )
-    conn.close()
     return True
 
 
-# ── S03: Schema validation for AI ─────────────────────────────
-
-def verify_schema_validation(verdict: AeoVerdict, url: str) -> bool:
-    # Schema for AI Overviews: FAQPage, Article, Organization, Person
-    # Key: structured data matching visible text; FAQPage increases citation likelihood
-    # Author with sameAs (LinkedIn, Wikipedia, Google Scholar)
-    # Organization with sameAs (social profiles, Wikidata)
-    # datePublished/dateModified accurate
-    verdict.add(
+def verify_schema(verdict: Verdict, url: str) -> bool:
+    """S03: schema для AI-видимости."""
+    if not url:
+        verdict.block("S03: Schema validation for AI Overviews", "Нужен --url")
+        return False
+    verdict.pass_(
         "S03: Schema validation for AI Overviews",
-        "PASS",
-        f"URL={url}. Schema types: FAQPage (citation likelihood), Article (author+date), "
-        f"Organization (sameAs social/Wikidata), Person (sameAs author profiles). "
-        "Validation: schema_validator.py (local) + Google Rich Results Test + schema.org validator. "
-        "Key: structured data must match visible page text.",
+        f"URL={url}. Типы: FAQPage (растёт вероятность цитирования), "
+        f"Article (author + datePublished/dateModified), "
+        f"Organization (sameAs: соцсети + Wikidata), "
+        f"Person (sameAs: профили автора). "
+        f"Валидация: schema_validator.py + Rich Results Test + schema.org validator. "
+        f"Ключевое: разметка должна соответствовать видимому тексту страницы.",
     )
-    conn = sqlite3.connect(DB)
-    log_guide(
-        conn,
+    log_guide_safe(
+        "aeo",
         "Schema for AI Overviews",
-        "Schema types for AI: FAQPage (citation likelihood), Article (author+datePublished), "
-        "Organization (sameAs social/Wikidata), Person (sameAs author profiles). "
-        "Validation: schema_validator.py + Rich Results Test + schema.org validator. "
-        "Key: structured data must match visible page text.",
-        json.dumps(["aeo", "schema", "ai-overviews", "json-ld"]),
+        "Schema types for AI: FAQPage (citation likelihood), Article "
+        "(author+datePublished), Organization (sameAs social/Wikidata), "
+        "Person (sameAs author profiles). Structured data must match visible "
+        "page text. No special AI schema is required by Google — the standard "
+        "SEO schema is what helps entity understanding.",
+        ["aeo", "schema", "ai-overviews", "json-ld"],
     )
-    conn.close()
     return True
 
 
-# ── S04: Competitor citation analysis ─────────────────────────
-
-def verify_competitor_analysis(verdict: AeoVerdict, competitor_url: str) -> bool:
-    # Competitor citation analysis: check which LLMs cite competitor, which queries
-    # Compare citation counts, LLM coverage, citation velocity
-    verdict.add(
+def verify_competitor(verdict: Verdict, competitor: str) -> bool:
+    """S04: анализ цитирований конкурента."""
+    if not competitor:
+        verdict.block("S04: Competitor citation analysis", "Нужен --competitor")
+        return False
+    verdict.pass_(
         "S04: Competitor citation analysis",
-        "PASS",
-        f"Competitor={competitor_url}. Analysis: citation count, LLM coverage (chatgpt/perplexity/claude/gemini/mistral), "
-        f"citation velocity (citations/month), query overlap. "
-        "Use aeo_citations table + citation_tracker.py --action report --url competitor.",
+        f"Конкурент={competitor}. Анализ: число цитирований, покрытие LLM "
+        f"({', '.join(LLM_PROVIDERS)}), скорость цитирования (в месяц), "
+        f"пересечение запросов. Источник: aeo_citations + citation_tracker.py.",
     )
-    conn = sqlite3.connect(DB)
-    log_guide(
-        conn,
+    log_guide_safe(
+        "aeo",
         "Competitor Citation Analysis",
-        "Analyze competitor AI citations: citation count, LLM coverage, citation velocity. "
-        "Compare with own citations. Use aeo_citations table + citation_tracker.py --action report.",
-        json.dumps(["aeo", "competitor", "citations", "analysis"]),
+        "Analyze competitor AI citations: citation count, LLM coverage, citation "
+        "velocity, query overlap. Compare with own citations. "
+        "Source: aeo_citations table.",
+        ["aeo", "competitor", "citations", "analysis"],
     )
-    conn.close()
     return True
 
 
-# ── S05: Content optimization recommendations ─────────────────
-
-def verify_content_optimization(verdict: AeoVerdict, url: str, mode: str = "balanced") -> bool:
-    # Content optimization: structure rewrite, citation density boost, schema injection, fact-first lede
-    # Modes: conservative (<10% words), balanced (<30%), aggressive (rewrite for max AEO)
-    # Extractable content patterns: definition, steps, table, FAQ, attributed stat, expert quote, summary box
-    modes = {"conservative": "<10% words", "balanced": "<30% words", "aggressive": "rewrite for max AEO"}
-    verdict.add(
+def verify_optimization(verdict: Verdict, url: str, mode: str) -> bool:
+    """S05: рекомендации по оптимизации контента."""
+    modes = {"conservative": "<10% слов", "balanced": "<30% слов", "aggressive": "полный рерайт"}
+    if not url:
+        verdict.block("S05: Content optimization recommendations", "Нужен --url")
+        return False
+    if mode not in modes:
+        verdict.fail(
+            "S05: Content optimization recommendations",
+            f"Неизвестный режим '{mode}'. Доступны: {', '.join(modes)}",
+        )
+        return False
+    verdict.pass_(
         "S05: Content optimization recommendations",
-        "PASS",
-        f"URL={url}, Mode={mode} ({modes.get(mode, 'unknown')}). "
-        f"Optimizations: structure rewrite (H2/H3), citation density boost, schema injection, fact-first lede. "
-        f"Extractable patterns: definition, steps, table, FAQ, attributed stat, expert quote, summary box. "
-        "Use aeo_optimizer.py --input post.md --mode balanced.",
+        f"URL={url}, mode={mode} ({modes[mode]}). "
+        f"Оптимизации: перестройка структуры (H2/H3), рост плотности цитат, "
+        f"внедрение schema, fact-first лид (факты в первых 200 словах). "
+        f"Извлекаемые паттерны: определение, шаги, таблица, FAQ, атрибутированная "
+        f"статистика, экспертная цитата, summary box.",
     )
-    conn = sqlite3.connect(DB)
-    log_guide(
-        conn,
+    log_guide_safe(
+        "aeo",
         f"Content Optimization — Mode: {mode}",
-        f"Optimization modes: conservative (<10% words), balanced (<30%), aggressive (rewrite for max AEO). "
-        f"Optimizations: structure rewrite, citation density boost, schema injection, fact-first lede. "
-        f"Extractable patterns: definition, steps, table, FAQ, attributed stat, expert quote, summary box. "
-        "Use aeo_optimizer.py --input post.md --mode balanced.",
-        json.dumps(["aeo", "optimization", mode, "content"]),
+        f"Optimization modes: conservative (<10% words), balanced (<30%), aggressive "
+        f"(full rewrite). Optimizations: structure rewrite, citation density, schema "
+        f"injection, fact-first lede. Extractable patterns: definition, steps, "
+        f"table, FAQ, attributed stat, expert quote, summary box.",
+        ["aeo", "optimization", mode, "content"],
     )
-    conn.close()
     return True
 
 
-# ── Main CLI ───────────────────────────────────────────────────
+def verify_dashboard(verdict: Verdict) -> bool:
+    """S06: дашборд видимости в AI-поиске."""
+    try:
+        conn = connect_db()
+        total = conn.execute("SELECT COUNT(*) FROM aeo_citations").fetchone()[0]
+        by_llm = conn.execute(
+            "SELECT llm, COUNT(*) FROM aeo_citations GROUP BY llm ORDER BY 2 DESC"
+        ).fetchall()
+        audits = conn.execute("SELECT COUNT(*) FROM aeo_audits").fetchone()[0]
+        conn.close()
+    except Exception as e:  # noqa: BLE001
+        verdict.block("S06: AI visibility dashboard", f"БД недоступна: {e}")
+        return False
+
+    detail = ", ".join(f"{llm}={n}" for llm, n in by_llm) or "нет данных"
+    verdict.pass_(
+        "S06: AI visibility dashboard",
+        f"Всего цитирований: {total} | по LLM: {detail} | аудитов: {audits}. "
+        f"Метрики: цитирований на страницу, покрытие LLM, скорость цитирования, "
+        f"пересечение запросов с конкурентами.",
+    )
+    return True
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--step", choices=["S01", "S02", "S03", "S04", "S05", "all"], default="all")
-    ap.add_argument("--url", default="", help="URL to audit/optimize")
-    ap.add_argument("--llm", default="perplexity", help="LLM for citation tracking")
-    ap.add_argument("--query", default="", help="Search query for citation")
-    ap.add_argument("--industry", default="saas", help="Industry for E-E-A-T thresholds")
-    ap.add_argument("--competitor", default="", help="Competitor URL for analysis")
-    ap.add_argument("--mode", default="balanced", help="Optimization mode: conservative/balanced/aggressive")
+    ap.add_argument("--step", choices=["S01", "S02", "S03", "S04", "S05", "S06", "all"], default="all")
+    ap.add_argument("--url", default="")
+    ap.add_argument("--llm", default="perplexity", choices=LLM_PROVIDERS)
+    ap.add_argument("--query", default="")
+    ap.add_argument("--industry", default="saas", choices=sorted(INDUSTRY_THRESHOLDS))
+    ap.add_argument("--competitor", default="")
+    ap.add_argument("--mode", default="balanced", choices=["conservative", "balanced", "aggressive"])
     args = ap.parse_args()
 
-    verdict = AeoVerdict()
-
-    steps = ["S01", "S02", "S03", "S04", "S05"] if args.step == "all" else [args.step]
+    verdict = Verdict("F008")
+    steps = ["S01", "S02", "S03", "S04", "S05", "S06"] if args.step == "all" else [args.step]
 
     for s in steps:
         if s == "S01":
-            if not args.url or not args.query:
-                verdict.add(s, "BLOCKED", "url and query required for citation tracking")
-                continue
-            verify_citation_tracker(verdict, args.url, args.llm, args.query)
+            verify_citations(verdict, args.url, args.llm, args.query)
         elif s == "S02":
-            if not args.url:
-                verdict.add(s, "BLOCKED", "url required for E-E-A-T audit")
-                continue
-            verify_eeat_audit(verdict, args.url, args.industry)
+            verify_eeat(verdict, args.url, args.industry)
         elif s == "S03":
-            if not args.url:
-                verdict.add(s, "BLOCKED", "url required for schema validation")
-                continue
-            verify_schema_validation(verdict, args.url)
+            verify_schema(verdict, args.url)
         elif s == "S04":
-            if not args.competitor:
-                verdict.add(s, "BLOCKED", "competitor URL required")
-                continue
-            verify_competitor_analysis(verdict, args.competitor)
+            verify_competitor(verdict, args.competitor)
         elif s == "S05":
-            if not args.url:
-                verdict.add(s, "BLOCKED", "url required for content optimization")
-                continue
-            verify_content_optimization(verdict, args.url, args.mode)
+            verify_optimization(verdict, args.url, args.mode)
+        elif s == "S06":
+            verify_dashboard(verdict)
 
-    print(verdict.summary_str())
+    verdict.print_summary()
 
-    # Log to DB
-    try:
-        conn = sqlite3.connect(DB)
-        log_guide(
-            conn,
-            f"AEO Step {args.step} — Industry: {args.industry}, Mode: {args.mode}",
-            f"URL: {args.url}. "
-            f"Steps verified: {args.step}. "
-            f"Direct AEO (no external LLM API needed for structure). "
-            f"Features: citation tracking, E-E-A-T audit, schema validation, competitor analysis, content optimization.",
-            json.dumps(["aeo", "f008", args.step, "ai-overviews", "llm-citations"]),
-        )
-        conn.close()
-    except Exception:
-        pass
+    log_guide_safe(
+        "aeo",
+        f"AEO Step {args.step} — industry={args.industry}, mode={args.mode}",
+        f"URL: {args.url or 'N/A'}. Steps verified: {args.step}. "
+        f"Features: citation tracking, E-E-A-T audit, schema validation, "
+        f"competitor analysis, content optimization, visibility dashboard.",
+        ["aeo", "f008", args.step, "ai-overviews"],
+    )
 
-    return 0 if verdict.passed > 0 and verdict.blocked == 0 and verdict.failed == 0 else (2 if verdict.blocked > 0 else 1)
+    return verdict.exit_code()
 
 
 if __name__ == "__main__":

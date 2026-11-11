@@ -1,0 +1,143 @@
+{
+  "generated_at": "2026-11-11T05:42:34.937358+00:00",
+  "total_docs": 12,
+  "total_endpoints": 61,
+  "sources": {
+    "business_profile": {
+      "doc_count": 1,
+      "entities": [
+        "doc:8"
+      ]
+    },
+    "ga4_admin": {
+      "doc_count": 1,
+      "entities": [
+        "doc:4"
+      ]
+    },
+    "ga4_data": {
+      "doc_count": 1,
+      "entities": [
+        "doc:3"
+      ]
+    },
+    "google-apis-master": {
+      "doc_count": 1,
+      "entities": [
+        "doc:2"
+      ]
+    },
+    "gsc": {
+      "doc_count": 1,
+      "entities": [
+        "doc:5"
+      ]
+    },
+    "gtm": {
+      "doc_count": 1,
+      "entities": [
+        "doc:1"
+      ]
+    },
+    "indexing": {
+      "doc_count": 1,
+      "entities": [
+        "doc:6"
+      ]
+    },
+    "merchant": {
+      "doc_count": 1,
+      "entities": [
+        "doc:9"
+      ]
+    },
+    "notes": {
+      "doc_count": 3,
+      "entities": [
+        "doc:10",
+        "doc:11",
+        "doc:12"
+      ]
+    },
+    "pagespeed": {
+      "doc_count": 1,
+      "entities": [
+        "doc:7"
+      ]
+    }
+  },
+  "entities": [
+    {
+      "id": "doc:8",
+      "title": "Google Business Profile (Business Information) API v1",
+      "type": "MachineReadableApiSpec",
+      "source": "business_profile"
+    },
+    {
+      "id": "doc:4",
+      "title": "Google Analytics Admin API v1alpha",
+      "type": "MachineReadableApiSpec",
+      "source": "ga4_admin"
+    },
+    {
+      "id": "doc:3",
+      "title": "Google Analytics Data API v1beta",
+      "type": "MachineReadableApiSpec",
+      "source": "ga4_data"
+    },
+    {
+      "id": "doc:2",
+      "title": "Google APIs для SEO, AI Overviews и Автоматизации",
+      "type": "Document",
+      "source": "google-apis-master"
+    },
+    {
+      "id": "doc:5",
+      "title": "Google Search Console API v1",
+      "type": "MachineReadableApiSpec",
+      "source": "gsc"
+    },
+    {
+      "id": "doc:1",
+      "title": "Google Tag Manager API v2",
+      "type": "MachineReadableApiSpec",
+      "source": "gtm"
+    },
+    {
+      "id": "doc:6",
+      "title": "Google Indexing API v3",
+      "type": "MachineReadableApiSpec",
+      "source": "indexing"
+    },
+    {
+      "id": "doc:9",
+      "title": "Google Merchant API v1",
+      "type": "MachineReadableApiSpec",
+      "source": "merchant"
+    },
+    {
+      "id": "doc:10",
+      "title": "session_f002_embeddings",
+      "type": "UsageGuide",
+      "source": "notes"
+    },
+    {
+      "id": "doc:11",
+      "title": "session_f005_gsc",
+      "type": "UsageGuide",
+      "source": "notes"
+    },
+    {
+      "id": "doc:12",
+      "title": "session_f009_openchamber",
+      "type": "UsageGuide",
+      "source": "notes"
+    },
+    {
+      "id": "doc:7",
+      "title": "PageSpeed Insights API v5",
+      "type": "MachineReadableApiSpec",
+      "source": "pagespeed"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "generated_at": "2026-11-11T05:42:34.932852+00:00",
+  "entity_count": 12,
+  "triple_count": 123,
+  "resource_count": 61,
+  "types": {
+    "MachineReadableApiSpec": 8,
+    "Document": 1,
+    "UsageGuide": 3
+  },
+  "sources": {
+    "business_profile": 1,
+    "ga4_admin": 1,
+    "ga4_data": 1,
+    "google-apis-master": 1,
+    "gsc": 1,
+    "gtm": 1,
+    "indexing": 1,
+    "merchant": 1,
+    "notes": 3,
+    "pagespeed": 1
+  },
+  "predicates": {
+    "has_source": 12,
+    "has_category": 12,
+    "has_version": 9,
+    "has_title": 12,
+    "last_updated_at": 12,
+    "shares_source_with": 3,
+    "exposes_resource": 63
+  }
+}

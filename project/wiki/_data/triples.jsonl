@@ -1,0 +1,123 @@
+{"subject": "doc:8", "predicate": "has_source", "object": "business_profile", "object_type": "literal"}
+{"subject": "doc:8", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:8", "predicate": "has_version", "object": "v1", "object_type": "literal"}
+{"subject": "doc:8", "predicate": "has_title", "object": "Google Business Profile (Business Information) API v1", "object_type": "literal"}
+{"subject": "doc:8", "predicate": "last_updated_at", "object": "2026-11-02T18:45:42.186030+00:00", "object_type": "literal"}
+{"subject": "doc:4", "predicate": "has_source", "object": "ga4_admin", "object_type": "literal"}
+{"subject": "doc:4", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:4", "predicate": "has_version", "object": "v1alpha", "object_type": "literal"}
+{"subject": "doc:4", "predicate": "has_title", "object": "Google Analytics Admin API v1alpha", "object_type": "literal"}
+{"subject": "doc:4", "predicate": "last_updated_at", "object": "2026-11-02T18:45:36.095573+00:00", "object_type": "literal"}
+{"subject": "doc:3", "predicate": "has_source", "object": "ga4_data", "object_type": "literal"}
+{"subject": "doc:3", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:3", "predicate": "has_version", "object": "v1beta", "object_type": "literal"}
+{"subject": "doc:3", "predicate": "has_title", "object": "Google Analytics Data API v1beta", "object_type": "literal"}
+{"subject": "doc:3", "predicate": "last_updated_at", "object": "2026-11-02T18:45:33.844710+00:00", "object_type": "literal"}
+{"subject": "doc:2", "predicate": "has_source", "object": "google-apis-master", "object_type": "literal"}
+{"subject": "doc:2", "predicate": "has_category", "object": "api-reference", "object_type": "literal"}
+{"subject": "doc:2", "predicate": "has_version", "object": "2026-10-09", "object_type": "literal"}
+{"subject": "doc:2", "predicate": "has_title", "object": "Google APIs для SEO, AI Overviews и Автоматизации", "object_type": "literal"}
+{"subject": "doc:2", "predicate": "last_updated_at", "object": "2026-10-11 20:18:33", "object_type": "literal"}
+{"subject": "doc:5", "predicate": "has_source", "object": "gsc", "object_type": "literal"}
+{"subject": "doc:5", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:5", "predicate": "has_version", "object": "v1", "object_type": "literal"}
+{"subject": "doc:5", "predicate": "has_title", "object": "Google Search Console API v1", "object_type": "literal"}
+{"subject": "doc:5", "predicate": "last_updated_at", "object": "2026-11-02T18:45:39.166371+00:00", "object_type": "literal"}
+{"subject": "doc:1", "predicate": "has_source", "object": "gtm", "object_type": "literal"}
+{"subject": "doc:1", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:1", "predicate": "has_version", "object": "v2", "object_type": "literal"}
+{"subject": "doc:1", "predicate": "has_title", "object": "Google Tag Manager API v2", "object_type": "literal"}
+{"subject": "doc:1", "predicate": "last_updated_at", "object": "2026-11-02T18:45:38.102076+00:00", "object_type": "literal"}
+{"subject": "doc:6", "predicate": "has_source", "object": "indexing", "object_type": "literal"}
+{"subject": "doc:6", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:6", "predicate": "has_version", "object": "v3", "object_type": "literal"}
+{"subject": "doc:6", "predicate": "has_title", "object": "Google Indexing API v3", "object_type": "literal"}
+{"subject": "doc:6", "predicate": "last_updated_at", "object": "2026-11-02T18:45:40.023659+00:00", "object_type": "literal"}
+{"subject": "doc:9", "predicate": "has_source", "object": "merchant", "object_type": "literal"}
+{"subject": "doc:9", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:9", "predicate": "has_version", "object": "v1", "object_type": "literal"}
+{"subject": "doc:9", "predicate": "has_title", "object": "Google Merchant API v1", "object_type": "literal"}
+{"subject": "doc:9", "predicate": "last_updated_at", "object": "2026-11-02T18:44:02.594754+00:00", "object_type": "literal"}
+{"subject": "doc:10", "predicate": "has_source", "object": "notes", "object_type": "literal"}
+{"subject": "doc:10", "predicate": "has_category", "object": "guide", "object_type": "literal"}
+{"subject": "doc:10", "predicate": "has_title", "object": "session_f002_embeddings", "object_type": "literal"}
+{"subject": "doc:10", "predicate": "last_updated_at", "object": "2026-11-02 18:44:03", "object_type": "literal"}
+{"subject": "doc:11", "predicate": "has_source", "object": "notes", "object_type": "literal"}
+{"subject": "doc:11", "predicate": "has_category", "object": "guide", "object_type": "literal"}
+{"subject": "doc:11", "predicate": "has_title", "object": "session_f005_gsc", "object_type": "literal"}
+{"subject": "doc:11", "predicate": "last_updated_at", "object": "2026-11-02 18:44:03", "object_type": "literal"}
+{"subject": "doc:12", "predicate": "has_source", "object": "notes", "object_type": "literal"}
+{"subject": "doc:12", "predicate": "has_category", "object": "guide", "object_type": "literal"}
+{"subject": "doc:12", "predicate": "has_title", "object": "session_f009_openchamber", "object_type": "literal"}
+{"subject": "doc:12", "predicate": "last_updated_at", "object": "2026-11-02 18:44:03", "object_type": "literal"}
+{"subject": "doc:7", "predicate": "has_source", "object": "pagespeed", "object_type": "literal"}
+{"subject": "doc:7", "predicate": "has_category", "object": "discovery", "object_type": "literal"}
+{"subject": "doc:7", "predicate": "has_version", "object": "v5", "object_type": "literal"}
+{"subject": "doc:7", "predicate": "has_title", "object": "PageSpeed Insights API v5", "object_type": "literal"}
+{"subject": "doc:7", "predicate": "last_updated_at", "object": "2026-11-02T18:45:41.023572+00:00", "object_type": "literal"}
+{"subject": "doc:10", "predicate": "shares_source_with", "object": "doc:11", "object_type": "entity"}
+{"subject": "doc:10", "predicate": "shares_source_with", "object": "doc:12", "object_type": "entity"}
+{"subject": "doc:11", "predicate": "shares_source_with", "object": "doc:12", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.destinations", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.environments", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.version_headers", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.versions", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.built_in_variables", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.clients", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.folders", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.gtag_config", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.tags", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.templates", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.transformations", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.triggers", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.variables", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.containers.workspaces.zones", "object_type": "entity"}
+{"subject": "doc:1", "predicate": "exposes_resource", "object": "resource:accounts.user_permissions", "object_type": "entity"}
+{"subject": "doc:3", "predicate": "exposes_resource", "object": "resource:properties", "object_type": "entity"}
+{"subject": "doc:3", "predicate": "exposes_resource", "object": "resource:properties.audienceExports", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:accountSummaries", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:accounts", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:accounts.accessBindings", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.accessBindings", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.adSenseLinks", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.audiences", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.bigQueryLinks", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.calculatedMetrics", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.channelGroups", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.conversionEvents", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.customDimensions", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.customMetrics", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.dataStreams", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.dataStreams.eventCreateRules", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.dataStreams.eventEditRules", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.dataStreams.measurementProtocolSecrets", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.dataStreams.sKAdNetworkConversionValueSchema", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.displayVideo360AdvertiserLinkProposals", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.displayVideo360AdvertiserLinks", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.expandedDataSets", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.firebaseLinks", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.googleAdsLinks", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.keyEvents", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.reportingDataAnnotations", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.rollupPropertySourceLinks", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.searchAds360Links", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.subpropertyEventFilters", "object_type": "entity"}
+{"subject": "doc:4", "predicate": "exposes_resource", "object": "resource:properties.subpropertySyncConfigs", "object_type": "entity"}
+{"subject": "doc:5", "predicate": "exposes_resource", "object": "resource:searchanalytics", "object_type": "entity"}
+{"subject": "doc:5", "predicate": "exposes_resource", "object": "resource:sitemaps", "object_type": "entity"}
+{"subject": "doc:5", "predicate": "exposes_resource", "object": "resource:sites", "object_type": "entity"}
+{"subject": "doc:5", "predicate": "exposes_resource", "object": "resource:urlInspection.index", "object_type": "entity"}
+{"subject": "doc:5", "predicate": "exposes_resource", "object": "resource:urlTestingTools.mobileFriendlyTest", "object_type": "entity"}
+{"subject": "doc:6", "predicate": "exposes_resource", "object": "resource:urlNotifications", "object_type": "entity"}
+{"subject": "doc:7", "predicate": "exposes_resource", "object": "resource:pagespeedapi", "object_type": "entity"}
+{"subject": "doc:8", "predicate": "exposes_resource", "object": "resource:accounts.locations", "object_type": "entity"}
+{"subject": "doc:8", "predicate": "exposes_resource", "object": "resource:attributes", "object_type": "entity"}
+{"subject": "doc:8", "predicate": "exposes_resource", "object": "resource:categories", "object_type": "entity"}
+{"subject": "doc:8", "predicate": "exposes_resource", "object": "resource:chains", "object_type": "entity"}
+{"subject": "doc:8", "predicate": "exposes_resource", "object": "resource:googleLocations", "object_type": "entity"}
+{"subject": "doc:8", "predicate": "exposes_resource", "object": "resource:locations", "object_type": "entity"}
+{"subject": "doc:8", "predicate": "exposes_resource", "object": "resource:locations.attributes", "object_type": "entity"}

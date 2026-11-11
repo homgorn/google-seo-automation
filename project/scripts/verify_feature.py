@@ -16,6 +16,7 @@ Usage:
 
 import argparse
 import json
+import os
 import sqlite3
 import subprocess
 import sys
@@ -213,13 +214,34 @@ def _verify_f007(result, steps):
 
 
 def _verify_f010(result, steps):
-    # Tests: run pytest
+    # Tests: run pytest.
+    #
+    # GUARD: verify_feature.py --all вызывает pytest, а pytest может
+    # вызвать verify_feature.py --all → бесконечная рекурсия
+    # (обнаружено 2026-11-11: тест verify_feature_all таймаутился на 120с).
+    # Переменная окружения разрывает цикл.
+    if os.getenv("VERIFY_FEATURE_NO_PYTEST") == "1":
+        result.add(
+            "F010 pytest",
+            "BLOCKED",
+            "pytest пропущен: рекурсионный guard (VERIFY_FEATURE_NO_PYTEST=1)",
+        )
+        return
     try:
-        proc = subprocess.run([sys.executable, "-m", "pytest", "tests/", "-q"], capture_output=True, text=True, timeout=120, cwd=PROJECT_ROOT)
+        env = os.environ.copy()
+        env["VERIFY_FEATURE_NO_PYTEST"] = "1"
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "tests/", "-q"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=300, cwd=PROJECT_ROOT, env=env,
+        )
         if proc.returncode == 0:
             result.add("F010 pytest", "PASS", "All tests passed")
         else:
-            result.add("F010 pytest", "FAIL", proc.stdout[-200:] if proc.stdout else proc.stderr[-200:])
+            tail = (proc.stdout or "")[-300:] or (proc.stderr or "")[-300:]
+            result.add("F010 pytest", "FAIL", tail)
+    except subprocess.TimeoutExpired:
+        result.add("F010 pytest", "FAIL", "pytest timeout (>300s)")
     except Exception as e:
         result.add("F010 pytest", "BLOCKED", str(e)[:150])
 
