@@ -65,6 +65,12 @@ def main():
     ap.add_argument("--query")
     ap.add_argument("--entity-type")
     args = ap.parse_args()
+    for s in (sys.stdout, sys.stderr):
+        if hasattr(s, "reconfigure"):
+            try:
+                s.reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
     return query(subject=args.subject, predicate=args.predicate, text=args.query,
                  entity_type=args.entity_type)
 

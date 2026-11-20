@@ -468,5 +468,21 @@
     "estimate_steps": 8,
     "uncovered_steps": [],
     "status": "in_progress"
+  },
+  {
+    "id": "F016",
+    "category": "architecture_doc",
+    "description": "GSC Bucket System Design: deploy lifecycle through GSC buckets (GSS_PENDING → GSC_READY → DEPLOYING → CLOUDFLARE_WAIT → GSC_FULL_DEPLOY). Bucket transitions via verify_deploy / verify_gsc_discover / wait_for_quota_available, Cloudflare Queue edge retry, user email notification on full deploy. See docs/gsc/gsc_bucket_design.md.",
+    "steps": [
+      "Design: bucket states GSS_PENDING → GSC_READY → DEPLOYING → CLOUDFLARE_WAIT → GSC_FULL_DEPLOY (design doc)",
+      "Design: deploy-time buckets registration + edge queue (Cloudflare Queue) design",
+      "Design: deploy_discovery_requeue — sitemap + Indexing API + durable queue, GSS_PENDING → GSC_READY transition",
+      "Design: verify_deploy — GSC_READY → DEPLOYING transition (sites.get deployed=True)",
+      "Design: verify_gsc_discover — DEPLOYING → CLOUDFLARE_WAIT transition (sites.get + sitemaps.get + INDEX_GSC_READY)",
+      "Design: wait_for_quota_available — CLOUDFLARE_WAIT → GSC_DISCOVER_VERIFY (quota + discovery check)",
+      "Design: GSC_FULL_DEPLOY_NOTIFY — user email on full deploy (timeline + statuses + unauthenticated check-ins)"
+    ],
+    "priority": 2,
+    "passes": true
   }
 ]
