@@ -174,3 +174,9 @@ python scripts/verify_feature.py --all → 8 PASS, 0 FAIL, 3 BLOCKED
 - Semantic DB: data/llm_knowledge.db (entities=29, ontology=34, triples=15, edges=10)
 - docs/gsc/: gsc_declaration.md, README.md, check-in/, gsc_status_reports/
 - tests: 155 passed
+
+## 2026-11-20 — Security fixes, F013 (SEO Acceleration), F016 (GSC bucket design)
+- SECURITY (audit response): guards on sync_wiki/init_db/wiki_query/embed_wiki/wiki_index/openchamber_sync/verify_feature/gsc_automation (HIGH+MEDIUM mutations)
+- F013: `f013_seo_acceleration.py` — actions: robots, crawlers (check_only), claude_blocks, meta_audit, link_audit, image_audit, page_health, deploy_submit; `tests/test_f013_seo.py`; verify_feature F013 PASS
+- F016: `docs/gsc/gsc_bucket_design.md` — GSS_PENDING → GSC_READY → DEPLOYING → CLOUDFLARE_WAIT → GSC_FULL_DEPLOY (doc + feature F016)
+- Semantic graph: F013, F016 triples (entities=29, ontology=39, triples=15)
