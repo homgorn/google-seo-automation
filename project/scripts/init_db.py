@@ -18,6 +18,9 @@ for _stream in (sys.stdout, sys.stderr):
             pass
 
 PROJECT_ROOT = Path(__file__).parent.parent
+
+sys.path.insert(0, str(Path(__file__).parent))
+from common import Verdict, check_mutation_allowed  # noqa: E402
 DB_PATH = PROJECT_ROOT / "data" / "wiki.db"
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -205,7 +208,11 @@ def migrate_to_v2(conn):
     восстанавливаются командой `python3 scripts/sync_wiki.py --full`,
     поэтому пересоздание таблицы не приводит к потере информации.
     Ничего не удаляется с диска — меняется только таблица в SQLite.
+
+    Мутация — GUARDED (check_mutation_allowed).
     """
+    if not check_mutation_allowed(Verdict("F001"), "migrate_to_v2"):
+        return
     cols = columns_of(conn, "api_endpoints")
     if not cols:
         return  # таблицы ещё нет — её создаст executescript выше
@@ -263,7 +270,11 @@ def migrate_guides_routing(conn):
 
     Исправление — UPDATE doc_id по соответствию feature → source.
     Ничего не удаляется: содержимое гайдов сохраняется.
+
+    Мутация — GUARDED (check_mutation_allowed).
     """
+    if not check_mutation_allowed(Verdict("F001"), "migrate_guides_routing"):
+        return
     mapping = {
         "gsc": "gsc",
         "gtm": "gtm",

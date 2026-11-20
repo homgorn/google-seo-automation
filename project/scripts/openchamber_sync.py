@@ -73,6 +73,11 @@ def oc_to_wiki(conn):
         content_lines.append(f"| {ts or '-'} | {ctype} | {field or '-'} | {snippet} |")
 
     note_path = NOTES_DIR / "sync_oc_to_wiki.md"
+    sys.path.insert(0, str(Path(__file__).parent))
+    from common import Verdict, check_mutation_allowed
+    if not check_mutation_allowed(Verdict("F009"), f"write note: {note_path}"):
+        print("[SKIP] Запись заблокирована (ALLOW_MUTATIONS != 1)")
+        return
     note_path.write_text("\n".join(content_lines), encoding="utf-8")
     print(f"Заметка записана: {note_path.relative_to(WIKI_DIR.parent)}")
 

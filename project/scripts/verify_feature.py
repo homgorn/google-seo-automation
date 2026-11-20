@@ -437,6 +437,15 @@ def main():
         # Write report to DB
         try:
             conn = sqlite3.connect(DB_PATH)
+            # Запись в guides — МУТАЦИЯ: GUARD (default BLOCKED)
+            sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+            from common import check_mutation_allowed as _check_mutation
+            v = VerificationResult(feature_id, "All features")
+            if not _check_mutation(v, "verify_feature --all (guides insert)"):
+                conn.close()
+                for r in results:
+                    r.print_report()
+                return 0
             conn.execute(
                 """INSERT INTO guides (doc_id, guide_type, title, content, tags)
                    VALUES (?, ?, ?, ?, ?)""",

@@ -26,6 +26,9 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
+sys.path.insert(0, str(Path(__file__).parent))
+from common import Verdict, check_mutation_allowed  # noqa: E402
+
 # Windows-консоль по умолчанию cp1252/cp866 — не печатает кириллицу.
 # Форсируем UTF-8 на уровне stdout/stderr, иначе скрипт падает на первом же print().
 for _stream in (sys.stdout, sys.stderr):
@@ -228,7 +231,12 @@ def _mk(resource, m, verb):
 
 
 def sync_discovery(conn, key, cfg):
-    """Синхронизирует один discovery-документ. Возвращает статистику."""
+    """Синхронизирует один discovery-документ. Возвращает статистику.
+
+    Мутация — GUARDED (check_mutation_allowed), default без ALLOW_MUTATIONS.
+    """
+    if not check_mutation_allowed(Verdict("F001"), f"sync_discovery: {key}"):
+        return {"processed": 0, "created": 0, "updated": 0}, []
     stats = {"processed": 0, "created": 0, "updated": 0}
     run_id = start_run(conn, key, "incremental")
 
@@ -425,7 +433,12 @@ def parse_frontmatter(md):
 
 
 def sync_local_wiki(conn, sources=None):
-    """Ингестит wiki/*.md в api_docs. Возвращает статистику."""
+    """Ингестит wiki/*.md в api_docs. Возвращает статистику.
+
+    Мутация — GUARDED (check_mutation_allowed), default без ALLOW_MUTATIONS.
+    """
+    if not check_mutation_allowed(Verdict("F001"), "sync_local_wiki"):
+        return {"processed": 0, "created": 0, "updated": 0}
     stats = {"processed": 0, "created": 0, "updated": 0}
     if not WIKI_DIR.exists():
         print(f"  [SKIP] {WIKI_DIR} не существует")

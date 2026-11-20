@@ -17,6 +17,9 @@ import sqlite3
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from common import Verdict, check_mutation_allowed  # noqa: E402
+
 for _s in (sys.stdout, sys.stderr):
     if hasattr(_s, "reconfigure"):
         try:
@@ -209,6 +212,9 @@ def cmd_clean_legacy(conn, args):
         print(f"Найдено строк с resource='': {n}")
         print("Это синтетические заглушки из миграции v1->v2, не реальные эндпоинты.")
         print("Повторите с --yes для удаления (данные восстанавливаются через sync_wiki.py --full).")
+        return
+    v = Verdict("F001")
+    if not check_mutation_allowed(v, "clean-legacy: DELETE api_endpoints WHERE resource=''"):
         return
     conn.execute("DELETE FROM api_endpoints WHERE resource=''")
     conn.commit()

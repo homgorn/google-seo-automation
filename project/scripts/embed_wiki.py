@@ -23,6 +23,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from common import Verdict, check_mutation_allowed  # noqa: E402
 
 DB = Path(__file__).parent.parent / "data" / "wiki.db"
 CHROMA_DIR = Path(__file__).parent.parent / "data" / "chroma"
@@ -68,6 +71,8 @@ def embed_all(conn, dry_run=False):
     print("[!] Реальный режим эмбеддингов требует установки chromadb и sentence-transformers")
     print("    pip install chromadb sentence-transformers")
     print("    После установки повторить: python scripts/embed_wiki.py --full")
+    if not check_mutation_allowed(Verdict("F001"), "embed_all (chromadb real mode)"):
+        return {"count": 0, "status": "BLOCKED_MUTATIONS_OFF", "chroma_available": True}
     return {"count": len(docs), "status": "NEEDS_INSTALL", "chroma_available": False}
 
 

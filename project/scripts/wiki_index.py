@@ -28,6 +28,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from common import Verdict, check_mutation_allowed  # noqa: E402
 
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
@@ -176,6 +179,9 @@ def build_graph(conn):
 
 
 def write_indexes(conn):
+    if not check_mutation_allowed(Verdict("F001"), "write_indexes (wiki indexes)"):
+        print("[SKIP] write_indexes заблокирован: ALLOW_MUTATIONS != 1")
+        return
     entities, triples, graph, by_source = build_graph(conn)
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -371,7 +377,11 @@ def main():
         if args.stats:
             show_stats(conn)
             return
-        graph, n_ent, n_tri = write_indexes(conn)
+        result = write_indexes(conn)
+        if result is None:
+            print("[SKIP] Индексы не записаны (ALLOW_MUTATIONS != 1)")
+            return
+        graph, n_ent, n_tri = result
         print("\n=== WIKI INDEX GENERATED ===")
         print(f"Entities:        {n_ent}")
         print(f"Triples:         {n_tri}")
