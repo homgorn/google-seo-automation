@@ -158,3 +158,19 @@ python scripts/verify_feature.py --all → 8 PASS, 0 FAIL, 3 BLOCKED
 2. `UNIQUE(method,path)` схлопывал (312 → 162)
 3. Naive datetime TypeError в `check_freshness`
 4. Windows cp1252 (кириллица в stdout)
+
+## 2026-11-19 — F015 + LLM Wiki + Semantic DB
+- F015: `f015_chromex.py` — remote (PSI v5, retry 429/5xx), thresholds LCP<2500/CLS<0.1; tests in `tests/test_f012_f013_f015.py` (140 passed)
+- LLM Wiki: `wiki/llm/`, `wiki/llm.md`, `wiki/llm/index.md`, entry in `wiki/index.md`
+- Semantic DB: `data/llm_knowledge.db` (entities=27, ontology=26, triples=15, edges=10) + `scripts/build_llm_knowledge.py`, `scripts/query_llm_graph.py`
+- F012 structural, auth-blocked (GCP sa needed)
+
+## 2026-11-20 — F010/F011 + F015 fixes + LLM Wiki/semantic DB (F012)
+- F015: `f015_chromex.py` — remote (PSI v5, с ретраями), thresholds LCP<2500/CLS<0.1; 140 tests
+- F010: `verify_feature.py` + `tests/test_f010_verify.py` + docs/gsc/ — GSC journal (read_csv_journal/write_csv_journal, гарды, ISO validation); verify_feature F010 PASS
+- F011: `gsc_automation.py` — gsc_sites_list, gsc_sitemap_list, gsc_urls_inspect, gsc_get_change_log_doc; tests/test_gsc_automation.py; verify_feature F011 PASS
+- F012: cloudflare_pages_gsc + cloudflare_deploy_hook (GSC discovery через urls.inspect); googleapiclient imports (pip install)
+- LLM Wiki: wiki/llm/, wiki/llm.md, wiki/index.md; research fetches (web.dev CWV)
+- Semantic DB: data/llm_knowledge.db (entities=29, ontology=34, triples=15, edges=10)
+- docs/gsc/: gsc_declaration.md, README.md, check-in/, gsc_status_reports/
+- tests: 155 passed

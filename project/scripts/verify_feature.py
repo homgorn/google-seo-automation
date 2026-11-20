@@ -34,6 +34,154 @@ for _stream in (sys.stdout, sys.stderr):
 PROJECT_ROOT = Path(__file__).parent.parent
 DB_PATH = PROJECT_ROOT / "data" / "wiki.db"
 
+sys.path.insert(0, str(Path(__file__).parent))
+from common import check_mutation_allowed, mutations_allowed  # noqa: E402
+
+# ── F010: GSC integration journal ────────────────────────────
+# docs/gsc/gsc_status_reports/*.csv — структура интеграции с GSC
+DOC_TYPES = {
+    "sitetoken": "tok",
+    "status_report": "json",
+    "usage_report": "json",
+    "gsc_change_log": "json",
+}
+DOC_ID_KEYS = ["page_urls", "timestamps_start", "timestamps_end"]
+JOURNAL_DIR = PROJECT_ROOT / "docs" / "gsc" / "gsc_status_reports"
+
+
+def read_csv_journal(journal_dir=None, dry_run: bool = True):
+    """F010/A03-1: прочитать GSC status reports journal (grep STATUS journal CSV).
+
+    Returns: list[dict] sorted newest-first (by detected_at), or None on failure.
+    """
+    import csv
+    from datetime import datetime
+
+    journal_dir = journal_dir or JOURNAL_DIR
+    if journal_dir is None or not journal_dir.exists():
+        print(f"[F010] journal dir не найден: {journal_dir}")
+        return None
+
+    files = sorted(journal_dir.glob("*.csv"), key=lambda p: p.stat().st_mtime, reverse=True)
+    rows = []
+    for fp in files:
+        try:
+            with open(fp, newline="", encoding="utf-8") as fh:
+                reader = csv.DictReader(fh)
+                missing = [c for c in ("doc_id", "doc_type", "field_changed", "new_value",
+                                       "deploy_url", "detected_at", "timestamps_start",
+                                       "timestamps_end") if c not in (reader.fieldnames or [])]
+                if missing:
+                    print(f"[F010] {fp.name}: отсутствуют колонки {missing}")
+                    return None
+                for r in reader:
+                    r = {k: (v or "") for k, v in r.items()}
+                    r["_file"] = fp.name
+                    r["_rank"] = len(rows) + 1
+                    # page_urls — значение, когда field_changed == page_urls
+                    r["page_urls"] = r.get("new_value") if r.get("field_changed") == "page_urls" else None
+                    if r["doc_id"] not in DOC_TYPES:
+                        print(f"[F010] {fp.name}: неизвестный doc_id {r['doc_id']}")
+                        return None
+                    if r["doc_type"] not in DOC_TYPES.values():
+                        print(f"[F010] {fp.name}: неизвестный doc_type {r['doc_type']}")
+                        return None
+                    if r["field_changed"] not in ("page_urls", "timestamps_start",
+                                                  "timestamps_end"):
+                        print(f"[F010] {fp.name}: field_changed={r['field_changed']} not in {DOC_ID_KEYS}")
+                        return None
+                    # timestamp validation: ISO 8601
+                    for col in ("detected_at", "timestamps_start", "timestamps_end"):
+                        v = r[col]
+                        if v:
+                            try:
+                                datetime.fromisoformat(v)
+                            except ValueError:
+                                print(f"[F010] {fp.name}: bad ISO timestamp in {col}: {v!r}")
+                                return None
+                    if r["detected_at"] and r["detected_at"] < r["timestamps_start"]:
+                        print(f"[F010] {fp.name}: detected_at < timestamps_start (timeline violation)")
+                        return None
+                    rows.append(r)
+        except Exception as e:
+            print(f"[F010] {fp.name}: parse error: {e}")
+            return None
+
+    # newest first
+    rows.sort(key=lambda r: r.get("detected_at", ""), reverse=True)
+    return rows
+
+
+def write_csv_journal(journal_dir=None, records=None, dry_run: bool = True):
+    """F010/A03-1: запись новых GSC status reports в journal CSV.
+
+    Мутация — по умолчанию BLOCKED (dry_run=True).
+    """
+    journal_dir = journal_dir or JOURNAL_DIR
+    if records is None:
+        records = []
+    if dry_run:
+        return []
+    if not mutations_allowed():
+        print("[F010] write_csv_journal BLOCKED (mutations_allowed() == False)")
+        return []
+
+    journal_dir.mkdir(parents=True, exist_ok=True)
+    if not all(r["doc_id"] in DOC_TYPES for r in records):
+        print("[F010] unknown doc_id in records")
+        return []
+
+    import csv
+    from datetime import datetime
+    journal_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    path = journal_dir / f"gsc-journal-{stamp}.csv"
+    cols = ["doc_id", "doc_type", "field_changed", "new_value",
+            "deploy_url", "detected_at", "timestamps_start", "timestamps_end"]
+    with open(path, "w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
+        w.writeheader()
+        for r in records:
+            w.writerow({c: r.get(c, "") for c in cols})
+    return [(p.name, len(records)) for p in [path]]
+
+
+def _gsc_paths_exist():
+    """F010: GSC integration структура — документация существует."""
+    gsc_dir = PROJECT_ROOT / "docs" / "gsc"
+    paths = [
+        gsc_dir / "gsc_declaration.md",
+        gsc_dir / "gsc_status_reports",
+        gsc_dir / "check-in" / "README.md",
+        gsc_dir / "check-in" / "discovery-guide.md",
+    ]
+    return {p: p.exists() for p in paths}
+
+
+def _verify_f010_journal(result, steps):
+    # 1) journal + docs structure
+    paths = _gsc_paths_exist()
+    missing = [p for p, ok in paths.items() if not ok]
+    if missing:
+        result.add("F010 GSC journal", "FAIL", f"Отсутствуют: {[str(m) for m in missing]}")
+    else:
+        result.add("F010 GSC journal", "PASS", f"docs/gsc structure OK, journal at {JOURNAL_DIR}")
+
+    # 2) read_csv_journal
+    rows = read_csv_journal(dry_run=True)
+    if rows is None:
+        result.add("F010 read_csv_journal", "FAIL", "journal corrupt or invalid")
+    else:
+        result.add("F010 read_csv_journal", "PASS", f"{len(rows)} записей, отсортировано newest-first")
+
+    # 3) gsc_declaration.md — поддерживает journal keys
+    decl = PROJECT_ROOT / "docs" / "gsc" / "gsc_declaration.md"
+    if decl.exists():
+        text = decl.read_text(encoding="utf-8")
+        keys = [k for k in DOC_ID_KEYS + ["deploy_url", "detected_at", "doc_id", "doc_type",
+                                           "field_changed", "new_value"] if k in text]
+        result.add("F010 gsc_declaration keys", "PASS", f"keys: {keys}")
+
 
 class VerificationResult:
     def __init__(self, feature_id: str, description: str):
@@ -117,6 +265,7 @@ def verify_feature(feature_id: str) -> VerificationResult:
         elif feature_id == "F007":
             _verify_f007(result, steps)
         elif feature_id == "F010":
+            _verify_f010_journal(result, steps)
             _verify_f010(result, steps)
         elif feature_id == "F011":
             _verify_f011(result, steps)

@@ -133,6 +133,83 @@ def batch_indexing_check(verdict: Verdict) -> bool:
     return True
 
 
+# ── F011: GSC discovery + change log access ────────────────────
+def _gsc_service():
+    """Получить googleapiclient searchconsole service (auth: google.auth.default)."""
+    try:
+        from googleapiclient.discovery import build
+        from google.auth import default
+    except Exception:
+        return None
+    try:
+        credentials, _ = default()
+        return build("searchconsole", "v3", credentials=credentials)
+    except Exception:
+        return None
+
+
+def gsc_sites_list() -> list:
+    """GSC API: sites.list → [{siteUrl, permissionLevel}] (пустой список без auth)."""
+    service = _gsc_service()
+    if service is None:
+        return []
+    try:
+        return service.sites().list().execute().get("sites", [])
+    except Exception:
+        return []
+
+
+def gsc_sitemap_list(site_url: str, path: str = "sitemap.xml") -> list:
+    """GSC API: sitemaps.list → [{feedPath, lastSubmissionTime, ...}]."""
+    service = _gsc_service()
+    if service is None:
+        return []
+    try:
+        return service.sitemaps().list(siteUrl=site_url).execute().get("sitemaps", [])
+    except Exception:
+        return []
+
+
+def gsc_urls_inspect(inspection_url: str, site_url: str) -> dict:
+    """GSC API: urls.inspect → статус индексации (verified/indexStatus/lastCrawlTime)."""
+    service = _gsc_service()
+    if service is None:
+        return {"verified": False, "indexStatus": "UNKNOWN"}
+    try:
+        resp = service.urls().inspect(inspectionUrl=inspection_url, siteUrl=site_url).execute()
+        ir = resp.get("inspectionResult", {})
+        return {
+            "verified": bool(ir.get("verified")),
+            "indexStatus": ir.get("indexStatus", "UNKNOWN"),
+            "pageFetchState": ir.get("pageFetchState"),
+            "lastCrawlTime": ir.get("lastCrawlTime"),
+            "lastModifiedTime": ir.get("lastModifiedTime"),
+            "googleCanonical": ir.get("googleCanonical"),
+        }
+    except Exception as e:
+        return {"verified": False, "indexStatus": "ERROR", "error": str(e)[:100]}
+
+
+def gsc_get_change_log_doc(doc_id: str):
+    """F011: gsc_change_log — из journal (docs/gsc/gsc_status_reports/) → {page_urls, timestamps_start, timestamps_end}."""
+    from verify_feature import read_csv_journal
+    rows = read_csv_journal(dry_run=True) or []
+    rows = [r for r in rows if r.get("doc_id") == doc_id]
+    if not rows:
+        return None
+    r = rows[0]
+    return {
+        "doc_id": doc_id,
+        "page_urls": r.get("page_urls"),
+        "timestamps_start": r.get("timestamps_start"),
+        "timestamps_end": r.get("timestamps_end"),
+        "new_value": r.get("new_value"),
+        "detected_at": r.get("detected_at"),
+        "field_changed": r.get("field_changed"),
+        "source": r.get("_file"),
+    }
+
+
 def build_weekly_digest(verdict: Verdict, site_url: str) -> bool:
     """S07: еженедельный дайджест по индексации и трафику.
 

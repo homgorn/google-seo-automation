@@ -1,0 +1,12 @@
+SEV | FILE:LINE | EVIDENCE(5w) | THREAT | FIX
+HIGH | ga4_automation.py:29-33 | Imports Verdict,log_guide_safe,validate_property_id only | Mutations in S04(keyEvents.create),S05(customDims.create),S06(dataStreams.create) unguarded | Add mutations_allowed,check_mutation_allowed imports; wrap S04-S06 writes
+HIGH | aeo_automation.py:30 | Imports Verdict,connect_db,log_guide_safe only | S01 adds citations,S02 adds audits - DB writes unguarded | Add check_mutation_allowed; guard S01,S02 writes with amount_micros=0
+HIGH | sync_wiki.py:104-405 | No mutation imports; writes api_docs,api_endpoints,change_log,sync_runs | Full sync mutates DB schema data without ALLOW_MUTATIONS guard | Add check_mutation_allowed at sync_discovery/sync_local_wiki entry; dry-run by default
+HIGH | init_db.py:201-253 | Migration DROPs TABLE,ALTERs,DELETEs guides,UPDATEs doc_id | Schema migration mutates production DB without any guard | Wrap migrate_to_v2/migrate_guides_routing in check_mutation_allowed
+HIGH | wiki_query.py:198-215 | clean-legacy DELETES from api_endpoints unguarded | Destructive DELETE without ALLOW_MUTATIONS confirmation | Add check_mutation_allowed guard before DELETE in cmd_clean_legacy
+MEDIUM | gsc_automation.py:34,109 | Imports mutations_allowed; shows guard status only | S05 Indexing API publish is mutation but only reports guard,doesnt block | Replace status display with check_mutation_allowed call in indexing_check
+MEDIUM | embed_wiki.py:41-71 | Real mode writes ChromaDB; no mutation imports | ChromaDB writes in embed_all unguarded when chromadb available | Add check_mutation_allowed guard before chroma upsert in real mode
+MEDIUM | wiki_index.py:178-310 | write_indexes writes 6 files to wiki/; no guards | Filesystem mutations (index.md,graph.json,etc) unguarded | Add check_mutation_allowed before write_indexes; dry-run default
+MEDIUM | openchamber_sync.py:54-77 | oc_to_wiki writes wiki/notes/sync_oc_to_wiki.md | Filesystem write unguarded | Add check_mutation_allowed guard before note_path.write_text
+MEDIUM | enrich_feature_list.py:212-215 | Writes feature_list.json; has --dry-run only | JSON write mutates config without ALLOW_MUTATIONS | Add check_mutation_allowed before FEATURE_LIST.write_text
+MEDIUM | verify_feature.py:289-301 | Writes guides table with INSERT on full verification | Audit report write to DB unguarded | Add check_mutation_allowed before guides INSERT
