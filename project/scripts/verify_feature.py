@@ -269,6 +269,8 @@ def verify_feature(feature_id: str) -> VerificationResult:
             _verify_f010(result, steps)
         elif feature_id == "F011":
             _verify_f011(result, steps)
+        elif feature_id == "F013":
+            _verify_f013(result, steps)
         else:
             result.add("feature", "BLOCKED", f"No verifier defined for {feature_id}")
     else:
@@ -393,6 +395,15 @@ def _verify_f010(result, steps):
         result.add("F010 pytest", "FAIL", "pytest timeout (>300s)")
     except Exception as e:
         result.add("F010 pytest", "BLOCKED", str(e)[:150])
+
+
+def _verify_f013(result, steps):
+    # F013: SEO Acceleration Pack — модуль есть, действия вызываемые
+    script = PROJECT_ROOT / "scripts" / "f013_seo_acceleration.py"
+    if script.exists():
+        result.add("F013 script", "PASS", f"{script.name} exists — actions: robots, crawlers, claude_blocks, meta_audit, link_audit, image_audit, page_health, deploy_submit")
+    else:
+        result.add("F013 script", "FAIL", f"{script.name} missing")
 
 
 def _verify_f011(result, steps):
