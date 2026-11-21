@@ -180,3 +180,9 @@ python scripts/verify_feature.py --all → 8 PASS, 0 FAIL, 3 BLOCKED
 - F013: `f013_seo_acceleration.py` — actions: robots, crawlers (check_only), claude_blocks, meta_audit, link_audit, image_audit, page_health, deploy_submit; `tests/test_f013_seo.py`; verify_feature F013 PASS
 - F016: `docs/gsc/gsc_bucket_design.md` — GSS_PENDING → GSC_READY → DEPLOYING → CLOUDFLARE_WAIT → GSC_FULL_DEPLOY (doc + feature F016)
 - Semantic graph: F013, F016 triples (entities=29, ontology=39, triples=15)
+
+## 2026-11-21 — F014 (Astro + Cloudflare 2026) + вики/граф обновлены
+- F014: `f014_astro_cloudflare.py` — actions: wrangler (Workers/assets/not_found_handling), cache (cacheCloudflare + _headers immutable), images (imageService + width/height/lazy), redirects, best_practices; `docs/cloudflare-astro-2026.md`; `tests/test_f014_astro.py` (8)
+- verify_feature F014 PASS; grounding Astro Docs MCP (deploy/cloudflare, caching)
+- Вики: `wiki/llm/f014_astro_cloudflare.md` + index обновлены; граф: F014 triples (ontology=42)
+- feature_list: F014 добавлена (16 фич всего)

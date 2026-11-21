@@ -271,6 +271,8 @@ def verify_feature(feature_id: str) -> VerificationResult:
             _verify_f011(result, steps)
         elif feature_id == "F013":
             _verify_f013(result, steps)
+        elif feature_id == "F014":
+            _verify_f014(result, steps)
         else:
             result.add("feature", "BLOCKED", f"No verifier defined for {feature_id}")
     else:
@@ -404,6 +406,15 @@ def _verify_f013(result, steps):
         result.add("F013 script", "PASS", f"{script.name} exists — actions: robots, crawlers, claude_blocks, meta_audit, link_audit, image_audit, page_health, deploy_submit")
     else:
         result.add("F013 script", "FAIL", f"{script.name} missing")
+
+
+def _verify_f014(result, steps):
+    # F014: Astro + Cloudflare 2026 — модуль + статический аудит
+    script = PROJECT_ROOT / "scripts" / "f014_astro_cloudflare.py"
+    if script.exists():
+        result.add("F014 script", "PASS", f"{script.name} exists — actions: wrangler, cache, images, redirects, best_practices")
+    else:
+        result.add("F014 script", "FAIL", f"{script.name} missing")
 
 
 def _verify_f011(result, steps):

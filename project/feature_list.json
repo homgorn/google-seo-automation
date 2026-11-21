@@ -484,5 +484,20 @@
     ],
     "priority": 2,
     "passes": true
+  },
+  {
+    "id": "F014",
+    "category": "integration",
+    "description": "Astro + Cloudflare 2026 Best Practices: wrangler.jsonc (Workers, assets.directory, not_found_handling), Cache Provider API (cacheCloudflare → Cloudflare-CDN-Cache-Control), _headers immutable для _astro/*, imageService cloudflare-binding, img width/height/loading=lazy (CLS), _redirects. Static audit + config generation. See docs/cloudflare-astro-2026.md.",
+    "steps": [
+      "wrangler.jsonc: assets.directory=./dist, compatibility_date, not_found_handling=404-page (Workers — рекомендованный путь 2026)",
+      "cache: cacheCloudflare() provider → Cloudflare-CDN-Cache-Control + Cache-Tag; public/_headers /_astro/* immutable",
+      "images: imageService cloudflare-binding (дефолт @astrojs/cloudflare@14); img width/height против CLS + loading=lazy",
+      "redirects: public/_redirects или configured redirects в astro.config",
+      "best_practices: полный аудит → docs/reports/f014-astro-cf-*.md (overall PASS/FAIL/BLOCKED)",
+      "Auto Minify выключить при hydration mismatch (troubleshooting)"
+    ],
+    "priority": 2,
+    "passes": false
   }
 ]
