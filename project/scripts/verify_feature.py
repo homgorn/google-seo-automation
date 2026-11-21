@@ -273,6 +273,8 @@ def verify_feature(feature_id: str) -> VerificationResult:
             _verify_f013(result, steps)
         elif feature_id == "F014":
             _verify_f014(result, steps)
+        elif feature_id == "F016":
+            _verify_f016(result, steps)
         else:
             result.add("feature", "BLOCKED", f"No verifier defined for {feature_id}")
     else:
@@ -415,6 +417,19 @@ def _verify_f014(result, steps):
         result.add("F014 script", "PASS", f"{script.name} exists — actions: wrangler, cache, images, redirects, best_practices")
     else:
         result.add("F014 script", "FAIL", f"{script.name} missing")
+
+
+def _verify_f016(result, steps):
+    # F016: GSC Bucket System Design — документ + фича в feature_list
+    doc = PROJECT_ROOT / "docs" / "gsc" / "gsc_bucket_design.md"
+    if doc.exists():
+        text = doc.read_text(encoding="utf-8")
+        states = all(s in text for s in ("GSS_PENDING", "GSC_READY", "DEPLOYING",
+                                         "CLOUDFLARE_WAIT", "GSC_FULL_DEPLOY"))
+        result.add("F016 bucket design doc", "PASS" if states else "FAIL",
+                   f"{doc.relative_to(PROJECT_ROOT)} — все 5 bucket states описаны" if states else "нет всех состояний")
+    else:
+        result.add("F016 bucket design doc", "FAIL", f"{doc} missing")
 
 
 def _verify_f011(result, steps):
