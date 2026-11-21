@@ -186,3 +186,8 @@ python scripts/verify_feature.py --all → 8 PASS, 0 FAIL, 3 BLOCKED
 - verify_feature F014 PASS; grounding Astro Docs MCP (deploy/cloudflare, caching)
 - Вики: `wiki/llm/f014_astro_cloudflare.md` + index обновлены; граф: F014 triples (ontology=42)
 - feature_list: F014 добавлена (16 фич всего)
+
+## 2026-11-21 — F013 sitemap/deploy_submit (steps 5,9,12) + 6 тестов
+- F013: action `sitemap` — валидация lastmod/changefreq/hreflang + sitemap-index + interlink report (Cloudflare Crawler Module)
+- F013: action `deploy_submit` — реальный submit через F012 (cloudflare_pages_gsc), dry-run BLOCKED по умолчанию
+- `_read` helper; tests/test_f013_sitemap.py (6); граф: F013 covers обновлён

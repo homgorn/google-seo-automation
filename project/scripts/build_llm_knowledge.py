@@ -110,6 +110,7 @@ ONTOLOGY = [
     ("feature:F014", "documents", "docs/cloudflare-astro-2026.md — wrangler.jsonc, cacheCloudflare, _headers immutable, imageService, not_found_handling"),
     ("feature:F014", "grounded_by", "Astro Docs MCP (Nov 2026): deploy/cloudflare, integrations-guide/cloudflare, caching"),
     ("feature:F013", "script_assigned", "scripts/f013_seo_acceleration.py"),
+    ("feature:F013", "covers", "robots, crawlers, claude_blocks, meta_audit, link_audit (orphan), image_audit, page_health, sitemap (lastmod/changefreq/hreflang), deploy_submit (sitemap+Indexing API)"),
     ("doc:gsc_bucket_design.md", "documents", "feature:F016, feature:F011, feature:F012"),
     ("feature:F016", "documents", "docs/gsc/gsc_bucket_design.md — GSS_PENDING → GSC_READY → DEPLOYING → CLOUDFLARE_WAIT → GSC_FULL_DEPLOY"),
     ("feature:F016", "prerequisite", "gsc_automation.py: S01 verify_deploy + S05 indexing + verify_gsc_discover — уже реализованы"),

@@ -48,6 +48,13 @@ def _now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+def _read(path):
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
 def _http_get(url, timeout=10):
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
@@ -288,11 +295,95 @@ def action_page_health(verdict: Verdict, keys: list):
     return True
 
 
+def action_sitemap(verdict: Verdict, project_dir: Path = None):
+    """F013 steps 5,9,12: Sitemap interlinks (lastmod/changefreq) + hreflang + interlink report.
+
+    Валидирует sitemap.xml: <lastmod>, <changefreq>, hreflang alternates.
+    Генерирует interlink-отчёт для Cloudflare Crawler Module.
+    """
+    project_dir = project_dir or PROJECT_ROOT
+    sitemap = None
+    for cand in (project_dir / "public" / "sitemap.xml",
+                 project_dir / "dist" / "sitemap.xml",
+                 project_dir / "sitemap.xml"):
+        if cand.exists():
+            sitemap = cand
+            break
+    if sitemap is None:
+        verdict.block("S05: Sitemap interlinks", "sitemap.xml не найден (public/ или dist/)")
+        return False
+
+    text = _read(sitemap)
+    urls = re.findall(r"<url>(.*?)</url>", text, re.S)
+    n_urls = len(urls)
+    n_lastmod = text.count("<lastmod>")
+    n_changefreq = text.count("<changefreq>")
+    n_hreflang = text.count("hreflang=")
+    has_index = "<sitemapindex" in text
+
+    if has_index:
+        verdict.add("S05: Sitemap index", "PASS", f"sitemap index с {n_urls} вложенными картами")
+        return True
+
+    # каждая запись должна иметь lastmod
+    missing_lastmod = n_urls - n_lastmod
+    completeness = 100 if n_urls == 0 else round(100 * (n_urls - missing_lastmod) / n_urls)
+    status = "PASS" if missing_lastmod == 0 else "WARN"
+    verdict.add("S05: Sitemap interlinks (lastmod/changefreq)", status,
+                f"{n_urls} URLs, lastmod={n_lastmod} (missing {missing_lastmod}), "
+                f"changefreq={n_changefreq}, hreflang={n_hreflang}, полнота {completeness}%")
+
+    # interlink report для Cloudflare Crawler Module
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    report = REPORT_DIR / f"f013-sitemap-{datetime.now(timezone.utc).strftime('%Y%m%d')}.md"
+    lines = [
+        f"# F013 — Sitemap interlink report — {_now_iso()}",
+        "",
+        f"- Sitemap: `{sitemap.relative_to(project_dir) if sitemap.is_relative_to(project_dir) else sitemap}`",
+        f"- URLs: {n_urls}, lastmod: {n_lastmod}, changefreq: {n_changefreq}, hreflang: {n_hreflang}",
+        f"- Полнота lastmod: {completeness}%",
+        "",
+        "## Рекомендации Cloudflare Crawler Module",
+        "- Каждый <url> должен иметь <lastmod> (ISO 8601) для приоритизации обхода",
+        "- hreflang alternates для мультиязычных страниц (x-default обязательно)",
+        "- changefreq: daily/weekly/monthly — подсказка краулеру (не гарантия)",
+    ]
+    report.write_text("\n".join(lines), encoding="utf-8")
+    log_guide_safe("f013", "F013 Sitemap interlinks",
+                   f"{n_urls} URLs, полнота lastmod {completeness}%, отчёт {report.name}",
+                   ["f013", "sitemap", "interlink", "crawler"])
+    return missing_lastmod == 0
+
+
+def action_deploy_submit(verdict: Verdict, site_url: str, top_pages: list = None):
+    """F013 step 9: submit новых страниц на deploy (sitemap + Indexing API).
+
+    Делегирует в cloudflare_pages_gsc (F012) — единый источник правды.
+    Dry-run по умолчанию (гард ALLOW_MUTATIONS).
+    """
+    pages = top_pages or [site_url.rstrip("/") + "/"]
+    if not mutations_allowed():
+        verdict.block("S09: Deploy submit (sitemap + Indexing)",
+                      f"dry-run: {len(pages)} страниц готовы к submit на {site_url} "
+                      f"(sitemaps.submit + urls.publish). ALLOW_MUTATIONS=1 для реального submit.")
+        return False
+    # Реальный submit — через F012 модуль
+    try:
+        sys.path.insert(0, str(SCRIPTS))
+        import cloudflare_pages_gsc as f012
+        ok_sitemap = f012.verify_sitemap_submit(verdict, site_url)
+        ok_index = f012.verify_indexing_top_pages(verdict, site_url, ",".join(pages))
+        return ok_sitemap and ok_index
+    except Exception as e:
+        verdict.fail("S09: Deploy submit", f"F012 delegation error: {e}")
+        return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--action", choices=[
         "robots", "crawlers", "claude_blocks", "meta_audit", "link_audit",
-        "image_audit", "page_health", "deploy_submit",
+        "image_audit", "page_health", "sitemap", "deploy_submit",
     ], default="robots")
     ap.add_argument("--site", default="https://example.com/")
     ap.add_argument("--check", action="store_true", help="check_only режим (S04)")
@@ -316,6 +407,10 @@ def main():
     elif args.action == "page_health":
         keys = args.site if isinstance(args.site, list) else [args.site]
         return 0 if action_page_health(verdict, keys) else verdict.exit_code()
+    elif args.action == "sitemap":
+        return 0 if action_sitemap(verdict, Path(args.site_dir)) else verdict.exit_code()
+    elif args.action == "deploy_submit":
+        return 0 if action_deploy_submit(verdict, args.site) else verdict.exit_code()
 
     verdict.print_summary()
     return verdict.exit_code()
